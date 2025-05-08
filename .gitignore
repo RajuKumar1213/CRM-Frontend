@@ -1,0 +1,70 @@
+# ✅ General
+.DS_Store
+Thumbs.db
+*.log
+*.local
+*.env*
+*.tgz
+*.gz
+*.zip
+*.rar
+*.7z
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vscode/
+.idea/
+.eslintcache
+*.sublime-workspace
+*.sublime-project
+
+# ✅ Vite / React
+node_modules/
+dist/
+dist-ssr/
+build/
+temp/
+explorations/
+playground-temp/
+
+# ✅ VitePress (if used)
+.vitepress/cache/
+docs/.vitepress/cache/
+
+# ✅ PNPM / Yarn / NPM junk
+.pnpm-debug.log
+.pnpm-store
+.yarn/
+.yarn-cache/
+package-lock.json
+yarn.lock
+.pnpm-lock.yaml
+
+# ✅ OS Specific
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# ✅ Git
+*.orig
+*.patch
+*.rej
+*.bak
+*.swp
+*.tmp
+*.pid
+*.seed
+*.pid.lock
+*.cpuprofile
+
+# ✅ Test Coverage
+coverage/
+
+# ✅ Mac/Windows System Files
+*.DS_Store
+*.AppleDouble
+.LSOverride
+
+# ✅ Other
+TODOs.md
