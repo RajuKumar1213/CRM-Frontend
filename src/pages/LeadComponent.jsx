@@ -150,7 +150,7 @@ const LeadComponent = () => {
 
   return (
     <div
-      className={`min-h-screen mt-16 ${
+      className={`min-h-screen pt-16 ${
         darkMode ? "dark bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
       } transition-colors duration-200`}
     >
@@ -283,14 +283,19 @@ const LeadComponent = () => {
                 style={{ maxHeight: "calc(100vh - 200px)" }}
               >
                 {activeTab === "today-followups" ? (
-                  todayfollowups &&
-                  todayfollowups?.followUps?.map((followUp) => (
-                    <UpcommingFollowups
-                      activeTab={activeTab}
-                      key={followUp._id}
-                      followUp={followUp}
-                    />
-                  ))
+                  todayfollowups?.count !==0 ? (
+                    todayfollowups?.followUps?.map((followUp) => (
+                      <UpcommingFollowups
+                        activeTab={activeTab}
+                        key={followUp._id}
+                        followUp={followUp}
+                      />
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-thin">
+                      No followups today
+                    </div>
+                  )
                 ) : leads?.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     No leads found. Create a new lead to get started.

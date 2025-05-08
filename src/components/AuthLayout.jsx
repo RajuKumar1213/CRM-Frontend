@@ -8,6 +8,8 @@ function AuthLayout({ children, authentication = true }) {
   const authStatus = useSelector((state) => state.auth.status);
   const [loader, setLoader] = useState(true);
 
+  console.log(authStatus)
+
   useEffect(() => {
     // if (authenticated && authStatus) {
     //   navigate("/");
