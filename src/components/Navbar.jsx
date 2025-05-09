@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import authService from '../services/authService';
 import toast from 'react-hot-toast';
 import { logout } from '../redux/features/authSlice';
+import Loading from './Loading';
 
 
 
@@ -15,11 +16,23 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
-
-
+  const toggleMenu = () => {
+    if(isOpen == true){
+      setIsOpen(false)
+    }else {
+      setIsOpen(true)
+    }
+  } 
+    
+  const toggleProfile = () => {
+    if(isProfileOpen == true){
+      setIsProfileOpen(false)
+    }else {
+      setIsProfileOpen(true)
+    }
+  };
 
   // Check if a link is active
   const isActive = (url) => location.pathname === url;
@@ -41,6 +54,7 @@ const Navbar = () => {
   ];
   
 const handleLogout = () => {
+  setLoading(true);
   authService.logoutUser().then((response) => {
     if (response.statusCode === 200) {
       localStorage.removeItem("accessToken");
@@ -49,8 +63,14 @@ const handleLogout = () => {
       dispatch(logout());
       toast.success("Logged out successfully!")
       navigate("/");
+      setIsOpen(false);
+      setIsProfileOpen(false);
     }
-  });
+  }).catch((error) => {
+    toast.error(error.message);
+  }).finally(() => {
+    setLoading(false);
+  })
 
   
 };
@@ -213,7 +233,7 @@ const handleLogout = () => {
                   className="flex items-center w-full px-3 py-2 text-base font-medium text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-md transition-colors"
                 >
                   <FaSignOutAlt className="mr-2" />
-                  Logout
+                 {loading && <Loading/>} Logout
                 </button>
               </>
             ) : (

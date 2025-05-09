@@ -59,7 +59,7 @@ const Login = () => {
 
           dispatch(login(response.data.user));
           toast.success("Logged in successfully!");
-          navigate("/"); // Adjust redirect as needed
+          navigate("/e-dashboard"); // Adjust redirect as needed
         } else {
           throw new Error("Invalid response from server");
         }

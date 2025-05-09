@@ -43,11 +43,13 @@ function App() {
 
   return !loading ? (
     <div className="min-h-screen bg-slate-700 box-border text-white">
-      <ScrollToTop />
+      <ScrollToTop/ >
+
       <Navbar />
       <Toaster position="right-bottom" reverseOrder={false} />
       <Outlet />
       <Footer />
+     
 
     </div>
   ) : (

@@ -1,32 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import Loading from "./Loading";
 // import ScrollToTop from "./ScrollToTop";
 
 function AuthLayout({ children, authentication = true }) {
   const navigate = useNavigate();
   const authStatus = useSelector((state) => state.auth.status);
   const [loader, setLoader] = useState(true);
+  const role = localStorage.getItem("role")
 
-  console.log(authStatus)
+  // console.log(authStatus)
 
   useEffect(() => {
-    // if (authenticated && authStatus) {
-    //   navigate("/");
-    // }
-    // if (!authenticated && !authStatus) {
-    //   navigate("/login");
-    // }
-
-    if (authentication && authStatus !== authentication) {
+    if (!role && authentication) {
       navigate("/login");
-    } else if (!authentication && authStatus !== authentication) {
+    } else if (role && !authentication) {
       navigate("/");
     }
     setLoader(false);
-  }, [authentication, authStatus]);
+  }, [authentication, role, navigate, authStatus]);
 
-  return loader ? <h1>Loading...</h1> : <div>{children}</div>;
+  return loader ? <Loading/> : <div>{children}</div>;
 }
 
 export default AuthLayout;

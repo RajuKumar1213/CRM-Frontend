@@ -17,7 +17,7 @@ import { useSelector } from "react-redux";
 import RecentActivity from "../components/RecentActivity";
 import leadService from "../services/leadService";
 import spinner from "/spinner.svg";
-import { Loading } from "../components";
+import { DashboardSkeleton, Loading, Skeleton } from "../components";
 import NewLeads from "../components/NewLeads";
 import UpcommingFollowups from "../components/UpcommingFollowups";
 import followUpService from "../services/followupService";
@@ -31,6 +31,8 @@ const EmployeeDashboard = () => {
   const [todayfollowups , setTodayfollowups] = useState(null)
   const [dueFolloups , setDueFolloups] = useState(null)
 
+
+
   useEffect(() => {
     leadService.getActivities().then((response) => {
       if (response.statusCode === 200) {
@@ -38,6 +40,10 @@ const EmployeeDashboard = () => {
         setLoading(false);
       }
     });
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
@@ -91,6 +97,8 @@ const EmployeeDashboard = () => {
 
   
 
+
+  if(loading) return <DashboardSkeleton/>
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen pt-16">
@@ -282,12 +290,12 @@ const EmployeeDashboard = () => {
 
             {loading ? (
               <Loading />
-            ) : todayfollowups ? (
+            ) : todayfollowups?.count !==0 ? (
               todayfollowups?.followUps?.map((followup) => (
                 <UpcommingFollowups key={followup._id} followUp={followup} />
               ))
             ) : (
-              <h1>No followups Available.</h1>
+              <h1 className="text-center pt-10 text-xl font-thin" >No followups Available.</h1>
             )}
           </div>
 

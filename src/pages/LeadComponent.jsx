@@ -6,170 +6,100 @@ import {
   FaPlus,
   FaHistory,
   FaChartBar,
-  FaSun,
-  FaMoon,
 } from "react-icons/fa";
 import leadService from "../services/leadService";
-import LeadCard from "../components/LeadCard";
 import followUpService from "../services/followupService";
+import LeadCard from "../components/LeadCard";
 import UpcommingFollowups from "../components/UpcommingFollowups";
+import DashboardSkeleton from "../components/DashboardSkeleton";
+import { toast } from "react-hot-toast";
+import { useForm } from "react-hook-form";
 
 const LeadComponent = () => {
-  // Theme state
-  const [darkMode, setDarkMode] = useState(true);
-
-  const [activities, setActivities] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [leads, setLeads] = useState(null);
-  const [followups, setFollowups] = useState(null);
-  const [todayfollowups, setTodayfollowups] = useState(null);
-  const [dueFolloups, setDueFolloups] = useState(null);
-
-  useEffect(() => {
-    followUpService
-      .getTodayFollowUps()
-      .then((response) => {
-        if (response.statusCode === 200) {
-          setTodayfollowups(response.data);
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
-
-  useEffect(() => {
-    leadService.getUserLeads().then((response) => {
-      if (response.statusCode === 200) {
-        setLeads(response.data);
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    followUpService.getUpcomingFollowUps().then((response) => {
-      if (response.statusCode === 200) {
-        setFollowups(response.data);
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    followUpService
-      .getTodayFollowUps()
-      .then((response) => {
-        if (response.statusCode === 200) {
-          setTodayfollowups(response.data);
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
-
-  useEffect(() => {
-    followUpService
-      .getOverdueFollowUps()
-      .then((response) => {
-        if (response.statusCode === 200) {
-          setDueFolloups(response.data);
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
-
-  useEffect(() => {
-    leadService.getUserLeads().then((response) => {
-      if (response.statusCode === 200) {
-        setLeads(response.data);
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  const [selectedLead, setSelectedLead] = useState(null);
+  const [leads, setLeads] = useState([]);
+  const [todayFollowups, setTodayFollowups] = useState({ count: 0, followUps: [] });
+  const [dueFollowups, setDueFollowups] = useState({ count: 0, followUps: [] });
   const [activeTab, setActiveTab] = useState("today-followups");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddLead, setShowAddLead] = useState(false);
-  const [newFollowUp, setNewFollowUp] = useState({
-    date: "",
-    time: "",
-    type: "Call",
-    notes: "",
-  });
 
-  const handleAddFollowUp = () => {
-    if (!selectedLead || !newFollowUp.date) return;
+  const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
-    const updatedLeads = leads.map((lead) => {
-      if (lead.id === selectedLead.id) {
-        return {
-          ...lead,
-          followUps: [
-            ...lead.followUps,
-            {
-              id: lead.followUps.length + 1,
-              date: newFollowUp.date,
-              type: newFollowUp.type,
-              notes: newFollowUp.notes,
-              completed: false,
-            },
-          ],
-        };
-      }
-      return lead;
-    });
+  // Fetch all data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [leadResponse, todayResponse, overdueResponse] = await Promise.all([
+          leadService.getUserLeads(),
+          followUpService.getTodayFollowUps(),
+          followUpService.getOverdueFollowUps(),
+        ]);
 
-    setLeads(updatedLeads);
-    setNewFollowUp({ date: "", time: "", type: "Call", notes: "" });
-  };
-
-  // Toggle follow up completion
-  const toggleFollowUp = (leadId, followUpId) => {
-    setLeads(
-      leads.map((lead) => {
-        if (lead.id === leadId) {
-          return {
-            ...lead,
-            followUps: lead.followUps.map((fu) =>
-              fu.id === followUpId ? { ...fu, completed: !fu.completed } : fu
-            ),
-          };
+        if (leadResponse.statusCode === 200) {
+          setLeads(leadResponse.data);
         }
-        return lead;
-      })
-    );
+        if (todayResponse.statusCode === 200) {
+          setTodayFollowups(todayResponse.data);
+        }
+        if (overdueResponse.statusCode === 200) {
+          setDueFollowups(overdueResponse.data);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Handle adding a new lead
+  const handleAddLead = async (data) => {
+    try {
+      const response = await leadService.createLead({
+        ...data,
+        status: "new",
+        priority: "medium",
+      });
+      if (response.statusCode === 201) {
+        setLeads([...leads, response.data]);
+        setShowAddLead(false);
+        reset();
+        toast.success("Lead added successfully!");
+      } else {
+        throw new Error("Failed to add lead");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to add lead");
+    }
   };
+
+  // Filter leads by search term
+  const filteredLeads = leads.filter(
+    (lead) =>
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
-    <div
-      className={`min-h-screen pt-16 ${
-        darkMode ? "dark bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
-      } transition-colors duration-200`}
-    >
+    <div className="min-h-screen pt-16 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {/* Header */}
-      <header className="py-4 px-6 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+      <header className="py-4 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm">
         <h1 className="text-2xl font-bold flex items-center">
           <FaUser className="mr-2 text-orange-500 dark:text-orange-400" />
           Lead Management
         </h1>
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-yellow-300"
-          >
-            {darkMode ? <FaSun /> : <FaMoon />}
-          </button>
-          <button
             onClick={() => setShowAddLead(true)}
-            className="flex items-center px-4 py-2 rounded-md bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white"
+            className="flex items-center px-4 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105 transition-transform duration-200"
+            aria-label="Add new lead"
           >
             <FaPlus className="mr-2" />
             Add Lead
@@ -191,100 +121,128 @@ const LeadComponent = () => {
                 placeholder="Search leads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search leads"
               />
             </div>
 
             <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
                 activeTab === "today-followups"
-                  ? "bg-orange-100 dark:bg-orange-900"
-                  : ""
-              }`}
+                  ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              } transition-colors duration-200`}
               onClick={() => setActiveTab("today-followups")}
             >
-              <span>Today's followups</span>
+              <span>Today's Follow-ups</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
-                {todayfollowups?.count}
+                {todayFollowups?.count || 0}
               </span>
             </button>
-
             <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
-                activeTab === "new" ? "bg-orange-100 dark:bg-orange-900" : ""
-              }`}
+                activeTab === "overdue-followups"
+                  ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              } transition-colors duration-200`}
+              onClick={() => setActiveTab("overdue-followups")}
+            >
+              <span>Overdue Follow-ups</span>
+              <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
+                {dueFollowups?.count || 0}
+              </span>
+            </button>
+            <button
+              className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
+                activeTab === "new"
+                  ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              } transition-colors duration-200`}
               onClick={() => setActiveTab("new")}
             >
               <span>New Leads</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
-                {leads?.filter((l) => l.status === "new").length}
+                {filteredLeads.filter((l) => l.status === "new").length}
               </span>
             </button>
-
             <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
-                activeTab === "all" ? "bg-orange-100 dark:bg-orange-900" : ""
-              }`}
+                activeTab === "all"
+                  ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              } transition-colors duration-200`}
               onClick={() => setActiveTab("all")}
             >
               <span>All Leads</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
-                {leads?.length}
+                {filteredLeads.length}
               </span>
             </button>
           </div>
 
           <div>
-            <h3 className="font-medium mb-2 flex items-center">
+            <h3 className="font-medium mb-2 flex items-center text-gray-700 dark:text-gray-300">
               <FaFilter className="mr-2" />
               Filters
             </h3>
-            <select className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
+            <select
+              className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              aria-label="Filter by status"
+            >
               <option>All Statuses</option>
               <option>New</option>
               <option>Contacted</option>
               <option>Qualified</option>
-              <option>Lost</option>
-              <option>Converted</option>
+              <option>Proposal</option>
+              <option>Negotiation</option>
+              <option>Closed-Won</option>
+              <option>Closed-Lost</option>
             </select>
-            <select className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 mt-2">
+            <select
+              className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              aria-label="Filter by source"
+            >
               <option>All Sources</option>
               <option>Website</option>
               <option>Referral</option>
               <option>Trade Show</option>
               <option>Social Media</option>
               <option>Email Campaign</option>
+              <option>WhatsApp</option>
             </select>
           </div>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 p-6">
-          {/* Lead List */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
               <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h2 className="text-lg font-semibold">
-                  {activeTab === "today-followups" && "Today's Followups"}
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {activeTab === "today-followups" && "Today's Follow-ups"}
+                  {activeTab === "overdue-followups" && "Overdue Follow-ups"}
                   {activeTab === "new" && "New Leads"}
                   {activeTab === "all" && "All Leads"}
                 </h2>
                 <div className="flex items-center space-x-2">
-                  <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <button
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                    aria-label="View history"
+                  >
                     <FaHistory />
                   </button>
-                  <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <button
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+                    aria-label="View analytics"
+                  >
                     <FaChartBar />
                   </button>
                 </div>
               </div>
 
-              <div
-                className="overflow-y-auto"
-                style={{ maxHeight: "calc(100vh - 200px)" }}
-              >
+              <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
                 {activeTab === "today-followups" ? (
-                  todayfollowups?.count !==0 ? (
-                    todayfollowups?.followUps?.map((followUp) => (
+                  todayFollowups.count !== 0 ? (
+                    todayFollowups.followUps.map((followUp) => (
                       <UpcommingFollowups
                         activeTab={activeTab}
                         key={followUp._id}
@@ -292,20 +250,34 @@ const LeadComponent = () => {
                       />
                     ))
                   ) : (
-                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-thin">
-                      No followups today
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
+                      No follow-ups today
                     </div>
                   )
-                ) : leads?.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                ) : activeTab === "overdue-followups" ? (
+                  dueFollowups.count !== 0 ? (
+                    dueFollowups.followUps.map((followUp) => (
+                      <UpcommingFollowups
+                        activeTab={activeTab}
+                        key={followUp._id}
+                        followUp={followUp}
+                      />
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
+                      No overdue follow-ups
+                    </div>
+                  )
+                ) : filteredLeads.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
                     No leads found. Create a new lead to get started.
                   </div>
                 ) : activeTab === "new" ? (
-                  leads
-                    ?.filter((lead) => lead.status === "new")
-                    ?.map((lead) => <LeadCard key={lead._id} lead={lead} />)
+                  filteredLeads
+                    .filter((lead) => lead.status === "new")
+                    .map((lead) => <LeadCard key={lead._id} lead={lead} />)
                 ) : (
-                  leads?.map((lead) => <LeadCard key={lead._id} lead={lead} />)
+                  filteredLeads.map((lead) => <LeadCard key={lead._id} lead={lead} />)
                 )}
               </div>
             </div>
@@ -314,6 +286,108 @@ const LeadComponent = () => {
       </div>
 
       {/* Add Lead Modal */}
+      {showAddLead && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md transform scale-95 animate-in">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Add New Lead
+            </h3>
+            <form onSubmit={handleSubmit(handleAddLead)} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  {...register("name", { required: "Name is required" })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter lead name"
+                />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  {...register("phone", { required: "Phone is required" })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter phone number"
+                />
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {errors.phone.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  {...register("email")}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="source"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Source (Optional)
+                </label>
+                <select
+                  id="source"
+                  {...register("source")}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Select source</option>
+                  <option value="website">Website</option>
+                  <option value="referral">Referral</option>
+                  <option value="trade show">Trade Show</option>
+                  <option value="social media">Social Media</option>
+                  <option value="email campaign">Email Campaign</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddLead(false)}
+                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-md transform hover:scale-105 transition-transform duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm text-white bg-orange-500 hover:bg-orange-600 rounded-md transform hover:scale-105 transition-transform duration-200"
+                >
+                  Add Lead
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,6 +8,8 @@ import Login from "./Login";
 import ForgetPassword from "./ForgetPassword";
 import AuthLayout from "./AuthLayout";
 import Loading from "./Loading";
+import Skeleton from "./Skeleton";
+import DashboardSkeleton from "./DashboardSkeleton";
 
 
 export {
@@ -20,5 +22,7 @@ export {
     Login,
     ForgetPassword,
     AuthLayout,
-    Loading
+    Loading,
+    Skeleton,
+    DashboardSkeleton
 }

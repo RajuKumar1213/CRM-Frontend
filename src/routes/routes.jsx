@@ -2,15 +2,16 @@ import { createBrowserRouter } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import App from "../App";
 import PageLoader from "../components/PageLoader";
-import { AuthLayout } from "../components";
+import { AuthLayout, Login } from "../components";
 
 const Home = lazy(() => import("../pages/Home"));
 const Signup = lazy(() => import("../components/Signup"));
-const Login = lazy(() => import("../components/Login"));
 const ForgetPassword = lazy(() => import("../components/ForgetPassword"));
 const EmployeeDashboard = lazy(() => import("../pages/EmployeeDashboard"));
 const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
 const LeadComponent = lazy(() => import("../pages/LeadComponent"));
+const LeadDetails = lazy(() => import("../pages/LeadDetails"));
+
 
 // Suspense Wrapper with proper PageLoader
 const withSuspense = (Component) => (
@@ -39,11 +40,10 @@ export const router = createBrowserRouter([
       },
       {
         path: "/login",
-        element: withSuspense(
+        element:
           <AuthLayout authentication={false}>
             <Login />
           </AuthLayout>
-        )
       },
       {
         path: "/forgot-password",
@@ -56,7 +56,7 @@ export const router = createBrowserRouter([
       {
         path: "/e-dashboard",
         element: withSuspense(
-          <AuthLayout authentication={true}>
+          <AuthLayout authentication>
             <EmployeeDashboard />
           </AuthLayout>
         )
@@ -64,7 +64,7 @@ export const router = createBrowserRouter([
       {
         path: "/admin-dashboard",
         element: withSuspense(
-          <AuthLayout authentication={true}>
+          <AuthLayout authentication>
             <AdminDashboard />
           </AuthLayout>
         )
@@ -72,8 +72,16 @@ export const router = createBrowserRouter([
       {
         path: "/leads",
         element: withSuspense(
-          <AuthLayout authentication={true}>
+          <AuthLayout authentication>
             <LeadComponent />
+          </AuthLayout>
+        )
+      },
+      {
+        path: "/leads/detail/:leadId",
+        element: withSuspense(
+          <AuthLayout authentication>
+            <LeadDetails />
           </AuthLayout>
         )
       }

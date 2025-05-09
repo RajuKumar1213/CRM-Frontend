@@ -3,6 +3,9 @@ import { FaPhone } from 'react-icons/fa'
 import { format } from 'date-fns'
 
 function UpcommingFollowups({followUp, activeTab}) {
+
+  console.log(followUp)
+
   return (
     <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
     <div className="flex items-start">
@@ -17,7 +20,7 @@ function UpcommingFollowups({followUp, activeTab}) {
       </div>
       <div>
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-          {followUp?.lead.name}
+          {followUp?.lead?.name || "Unknown Lead"}
         </h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Type: {followUp?.followUpType}
