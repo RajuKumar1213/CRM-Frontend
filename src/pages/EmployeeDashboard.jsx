@@ -282,10 +282,16 @@ const EmployeeDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {/* Upcoming Meetings */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Today's followups ({todayfollowups?.count})
+                Today's followups ({todayfollowups?.count}) 
               </h3>
+              <Link
+                to="/leads"
+                className="text-sm text-orange-500 hover:underline"
+              >
+                View All
+              </Link>
             </div>
 
             {loading ? (
@@ -300,16 +306,22 @@ const EmployeeDashboard = () => {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Upcoming followups ({followups?.count})
+              Upcoming followups ({followups?.count})
               </h3>
+              <Link
+                to="/leads"
+                className="text-sm text-orange-500 hover:underline"
+              >
+                View All
+              </Link>
             </div>
 
             {loading ? (
               <Loading />
             ) : followups ? (
-              followups?.data?.map((followup) => (
+              followups?.data?.slice(0, 3)?.map((followup) => (
                 <UpcommingFollowups key={followup._id} followUp={followup} />
               ))
             ) : (

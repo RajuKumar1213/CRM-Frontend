@@ -10,7 +10,9 @@ import {
   FaWhatsapp,
   FaInfoCircle,
   FaCalendarAlt,
-  FaUserTie
+  FaUserTie,
+  FaPencilRuler,
+  FaEdit
 } from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
 import leadService from "../services/leadService";
@@ -129,6 +131,8 @@ function LeadDetails() {
 
 
   const { lead, followUps, activities } = leadData;
+
+
   if(loading) return <Skeleton/>
 
   return (
@@ -391,12 +395,12 @@ function LeadDetails() {
                           </div>
                         </div>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Pending
+                          {followUp?.status}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <FaUserTie className="mr-2" />
-                        <span>Assigned to {followUp.assignedTo.name}</span>
+                        <FaEdit className="mr-2" />
+                        <span>Related note: {followUp?.notes}</span>
                       </div>
                     </li>
                   ))}

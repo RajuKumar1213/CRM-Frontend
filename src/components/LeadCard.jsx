@@ -1,36 +1,19 @@
 import React, { useState, useEffect } from "react";
-import {
-  FaClock,
-  FaEllipsisV,
-  FaEnvelope,
-  FaPhone,
-  FaPhoneAlt,
-  FaCalendarAlt,
-  FaWhatsapp,
-  FaTag,
-  FaCross,
-  FaCut,
-  FaTimes,
-  FaArrowLeft,
-} from "react-icons/fa";
+import { FaPhone, FaWhatsapp, FaCalendar, FaTag, FaClock, FaEnvelope } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import whatsappService from "../services/whatsappService";
-import leadService from "../services/leadService";
+import followUpService from "../services/followupService";
 import WhatsappTemplate from "./WhatsappTemplate";
 import Loading from "./Loading";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
-import Button from "./Button";
 
 function LeadCard({ lead, onClick, activeTab }) {
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
-  const [callStatus, setCallStatus] = useState("idle");
-  const [vonageClient, setVonageClient] = useState(null);
-  const [callInstance, setCallInstance] = useState(null);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -40,17 +23,13 @@ function LeadCard({ lead, onClick, activeTab }) {
   } = useForm();
 
   const statusColors = {
-    new: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-    contacted:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-    qualified:
-      "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-    proposal: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    negotiation:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-    "closed-won":
-      "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200",
-    "closed-lost": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    new: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
+    contacted: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200",
+    qualified: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+    proposal: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+    negotiation: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
+    "closed-won": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+    "closed-lost": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
   };
 
   const formatDate = (date) => {
@@ -67,30 +46,7 @@ function LeadCard({ lead, onClick, activeTab }) {
 
   const normalizedStatus = lead?.status?.toLowerCase() || "new";
 
-  const handleWhatsAppClick = () => {
-    setIsWhatsAppModalOpen(true);
-  };
-
-  const handleScheduleCall = async (data) => {
-    try {
-      const followUpData = {
-        leadId: lead._id,
-        scheduledDate: data.scheduledDate,
-        notes: data.notes || "",
-      };
-      const response = await leadService.scheduleFollowUp(followUpData);
-      if (response.statusCode === 200) {
-        toast.success("Follow-up scheduled successfully!");
-        setIsScheduleModalOpen(false);
-        reset();
-      } else {
-        throw new Error("Failed to schedule follow-up");
-      }
-    } catch (error) {
-      toast.error(error.message || "Failed to schedule follow-up");
-    }
-  };
-
+  // Fetch WhatsApp templates
   useEffect(() => {
     whatsappService
       .getWhatsappTemplates()
@@ -101,41 +57,71 @@ function LeadCard({ lead, onClick, activeTab }) {
       })
       .catch((error) => {
         console.error("Error fetching WhatsApp templates:", error);
+        toast.error("Failed to load WhatsApp templates");
       })
       .finally(() => {
         setLoading(false);
       });
   }, []);
 
+  // Handle scheduling a follow-up
+  const handleScheduleCall = async (data) => {
+    setIsSubmitting(true);
+    try {
+      const scheduledDate = new Date(`${data.date}T${data.time}:00`).toISOString();
+      const response = await followUpService.scheduleFollowUp({
+        leadId: lead._id,
+        followUpType: data.followUpType,
+        scheduled: scheduledDate,
+        notes: data.notes || "",
+      });
+      if (response.statusCode !== 201) {
+        throw new Error("Failed to schedule follow-up");
+      }
+      toast.success("Follow-up scheduled successfully!");
+      setIsScheduleModalOpen(false);
+      reset();
+    } catch (error) {
+      console.error("Error scheduling follow-up:", error);
+      toast.error(error.message || "Failed to schedule follow-up");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div
-      className={`p-4 border-b border-gray-200 dark:border-gray-700  hover:bg-gray-50 dark:hover:bg-gray-700 ${
+      className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg ${
         onClick ? "bg-orange-50 dark:bg-orange-900/30" : ""
       }`}
       onClick={onClick}
     >
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <Link to={`/leads/${lead._id}`} className="hover:underline">
-            <h3 className="font-medium text-gray-900 dark:text-gray-100">
-              {lead?.name || "Unknown Lead"}
-            </h3>
+          <Link
+            to={`/leads/${lead._id}`}
+            className="text-sm font-semibold text-gray-900 dark:text-white hover:underline"
+          >
+            {lead?.name || "Unknown Lead"}
           </Link>
         </div>
         <div className="flex items-center space-x-2">
           <span
-            className={`text-xs px-2 py-1 rounded-md ${
+            className={`text-xs font-medium px-2 py-1 rounded ${
               statusColors[normalizedStatus] || statusColors.new
             } capitalize`}
           >
             {lead?.status || "New"}
           </span>
-          <Link to={`detail/${lead._id}`}>
-            <button className="p-1 cursor-pointer text-xs rounded-md text-orange-500 hover:bg-gray-200 dark:hover:bg-gray-600">
+          <Link to={`/leads/${lead._id}`}>
+            <button
+              className="p-1 text-xs text-orange-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md"
+              aria-label="View lead details"
+            >
               View details
             </button>
           </Link>
-        </div>  
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         <div className="flex items-center">
@@ -164,72 +150,54 @@ function LeadCard({ lead, onClick, activeTab }) {
         </div>
       </div>
       {lead?.followUps?.length > 0 && (
-        <div className="mt-3 flex items-center text-sm">
+        <div className="mt-2 flex items-center text-sm">
           <FaClock className="mr-2 text-gray-500 dark:text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">
-            {lead.followUps.filter((fu) => !fu.completed).length} pending
-            follow-ups
+            {lead.followUps.filter((fu) => !fu.completed).length} pending follow-ups
           </span>
         </div>
       )}
-      <div className="mt-3 flex items-center space-x-2">
-        <div className="flex flex-wrap space-x-1">
-          <button
-            className={`flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm ${
-              callStatus === "connected"
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-orange-500 hover:bg-orange-600"
-            } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+      <div className="mt-3 flex flex-wrap space-x-2">
+        {lead?.phone && (
+          <a
+            href={`tel:${lead.phone}`}
+            className="flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+            aria-label={`Call ${lead.name}`}
           >
-            <FaPhoneAlt className="mr-2" />
-            {callStatus === "connecting"
-              ? "Connecting..."
-              : callStatus === "connected"
-              ? "End Call"
-              : "Call Lead"}
-          </button>
+            <FaPhone className="mr-1" />
+            Call
+          </a>
+        )}
+        {lead?.phone && (
           <button
-            onClick={handleWhatsAppClick}
-            disabled={!lead?.phone}
-            className="flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setIsWhatsAppModalOpen(true)}
+            className="flex items-center px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+            aria-label={`Message ${lead.name} on WhatsApp`}
           >
-            <FaWhatsapp className="mr-2" />
+            <FaWhatsapp className="mr-1" />
             WhatsApp
           </button>
-          <button
-            onClick={() => setIsScheduleModalOpen(true)}
-            disabled={!lead?.phone}
-            className="flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FaCalendarAlt className="mr-2" />
-            Schedule Call
-          </button>
-        </div>
-
-        {error && (
-          <span className="text-sm text-red-500 dark:text-red-400">
-            {error}
-          </span>
         )}
+        <button
+          onClick={() => setIsScheduleModalOpen(true)}
+          className="flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+          aria-label={`Schedule follow-up for ${lead.name}`}
+        >
+          <FaCalendar className="mr-1" />
+          Schedule
+        </button>
       </div>
 
       {/* WhatsApp Modal */}
       {isWhatsAppModalOpen && (
-        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg m-2 p-4 w-full max-w-xl overflow-y-auto max-h-[80vh]">
-            <button
-              onClick={() => setIsWhatsAppModalOpen(false)}
-              className=" mb-2 flex items-center justify-center gap-x-2 text-orange-500 cursor-pointer"
-            >
-              <FaArrowLeft /> Back
-            </button>
-
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl max-h-[80vh] overflow-y-auto transform scale-95 animate-in">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Select a Template to send message to {lead?.name}
+              Select a Template to Send to {lead?.name}
             </h3>
             <div>
               {loading ? (
-                <Loading />
+                <Loading h={4} w={4} />
               ) : whatsappTemplates?.templates?.length ? (
                 whatsappTemplates.templates.map((template) => (
                   <WhatsappTemplate
@@ -240,13 +208,16 @@ function LeadCard({ lead, onClick, activeTab }) {
                   />
                 ))
               ) : (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
                   No templates found. Create a new template to get started.
                 </div>
               )}
+            </div>
+            <div className="flex justify-end mt-4">
               <button
                 onClick={() => setIsWhatsAppModalOpen(false)}
-                className="mt-4 px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 rounded-md"
+                className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-md transform hover:scale-105 transition-transform duration-200"
+                aria-label="Cancel WhatsApp template selection"
               >
                 Cancel
               </button>
@@ -257,64 +228,108 @@ function LeadCard({ lead, onClick, activeTab }) {
 
       {/* Schedule Call Modal */}
       {isScheduleModalOpen && (
-        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md transform scale-95 animate-in">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Schedule Follow-Up Call for {lead?.name}
+              Schedule Follow-Up for {lead?.name}
             </h3>
-            <form
-              onSubmit={handleSubmit(handleScheduleCall)}
-              className="space-y-4"
-            >
+            <form onSubmit={handleSubmit(handleScheduleCall)} className="space-y-4">
               <div>
                 <label
-                  htmlFor="scheduledDate"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  htmlFor="date"
+                  className="block text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Date and Time
+                  Date
                 </label>
                 <input
-                  type="datetime-local"
-                  id="scheduledDate"
-                  {...register("scheduledDate", {
-                    required: "Date and time are required",
-                  })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="date"
+                  id="date"
+                  {...register("date", { required: "Date is required" })}
+                  className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label="Follow-up date"
                 />
-                {errors.scheduledDate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.scheduledDate.message}
+                {errors.date && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {errors.date.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="time"
+                  className="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Time
+                </label>
+                <input
+                  type="time"
+                  id="time"
+                  {...register("time", { required: "Time is required" })}
+                  className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label="Follow-up time"
+                />
+                {errors.time && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {errors.time.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="followUpType"
+                  className="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Type
+                </label>
+                <select
+                  id="followUpType"
+                  {...register("followUpType", { required: "Type is required" })}
+                  className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label="Follow-up type"
+                >
+                  <option value="call">Call</option>
+                  <option value="email">Email</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+                {errors.followUpType && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {errors.followUpType.message}
                   </p>
                 )}
               </div>
               <div>
                 <label
                   htmlFor="notes"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
                   Notes (Optional)
                 </label>
                 <textarea
                   id="notes"
                   {...register("notes")}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Add any notes for the follow-up..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter notes for the follow-up..."
+                  rows={2}
+                  aria-label="Follow-up notes"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsScheduleModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-md"
+                  className="px-3 py-1 text-xs text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-md transform hover:scale-105 transition-transform duration-200"
+                  aria-label="Cancel scheduling"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-md"
+                  disabled={isSubmitting}
+                  className="px-3 py-1 text-xs text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200 disabled:opacity-50"
+                  aria-label="Schedule follow-up"
                 >
-                  Schedule
+                  {isSubmitting ? "Scheduling..." : "Schedule"}
                 </button>
               </div>
             </form>
