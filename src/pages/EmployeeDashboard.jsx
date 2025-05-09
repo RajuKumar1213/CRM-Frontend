@@ -105,7 +105,7 @@ const EmployeeDashboard = () => {
       {/* Top Bar */}
       <div className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-md  font-bold text-gray-900 dark:text-white">
             Dashboard Overview
           </h1>
           <div className="flex items-center space-x-4">
@@ -117,9 +117,9 @@ const EmployeeDashboard = () => {
                 className="pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
-            <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            {/* <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
               <FaRegBell />
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

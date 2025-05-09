@@ -175,7 +175,7 @@ function LeadCard({ lead, onClick, activeTab }) {
       <div className="mt-3 flex items-center space-x-2">
         <div className="flex flex-wrap space-x-1">
           <button
-            className={`flex items-center px-3 py-1 rounded-md text-sm ${
+            className={`flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm ${
               callStatus === "connected"
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-orange-500 hover:bg-orange-600"
@@ -191,7 +191,7 @@ function LeadCard({ lead, onClick, activeTab }) {
           <button
             onClick={handleWhatsAppClick}
             disabled={!lead?.phone}
-            className="flex items-center px-3 py-1 rounded-md text-sm bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm bg-green-500 hover:bg-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FaWhatsapp className="mr-2" />
             WhatsApp
@@ -199,7 +199,7 @@ function LeadCard({ lead, onClick, activeTab }) {
           <button
             onClick={() => setIsScheduleModalOpen(true)}
             disabled={!lead?.phone}
-            className="flex items-center px-3 py-1 rounded-md text-sm bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-1 md:p-3 py-1 rounded-md text-xs md:text-sm bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FaCalendarAlt className="mr-2" />
             Schedule Call

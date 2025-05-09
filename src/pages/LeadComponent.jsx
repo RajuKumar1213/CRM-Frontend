@@ -11,9 +11,9 @@ import leadService from "../services/leadService";
 import followUpService from "../services/followupService";
 import LeadCard from "../components/LeadCard";
 import UpcommingFollowups from "../components/UpcommingFollowups";
-import DashboardSkeleton from "../components/DashboardSkeleton";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { LeadSkeleton } from "../components";
 
 const LeadComponent = () => {
   const [loading, setLoading] = useState(true);
@@ -85,20 +85,20 @@ const LeadComponent = () => {
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <LeadSkeleton />;
 
   return (
     <div className="min-h-screen pt-16 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {/* Header */}
       <header className="py-4 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm">
-        <h1 className="text-2xl font-bold flex items-center">
+        <h1 className="text-md md:text-2xl font-bold flex items-center">
           <FaUser className="mr-2 text-orange-500 dark:text-orange-400" />
           Lead Management
         </h1>
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setShowAddLead(true)}
-            className="flex items-center px-4 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105 transition-transform duration-200"
+            className="flex items-center px-2 md:px-4 py-1 md:py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105 transition-transform duration-200"
             aria-label="Add new lead"
           >
             <FaPlus className="mr-2" />
@@ -213,10 +213,10 @@ const LeadComponent = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-2 md:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {activeTab === "today-followups" && "Today's Follow-ups"}
                   {activeTab === "overdue-followups" && "Overdue Follow-ups"}

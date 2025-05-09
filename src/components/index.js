@@ -10,6 +10,7 @@ import AuthLayout from "./AuthLayout";
 import Loading from "./Loading";
 import Skeleton from "./Skeleton";
 import DashboardSkeleton from "./DashboardSkeleton";
+import LeadSkeleton from "./LeadSkeleton";
 
 
 export {
@@ -24,5 +25,6 @@ export {
     AuthLayout,
     Loading,
     Skeleton,
-    DashboardSkeleton
+    DashboardSkeleton,
+    LeadSkeleton
 }
