@@ -11,14 +11,52 @@ import {
   FaInfoCircle,
   FaCalendarAlt,
   FaUserTie,
-  FaPencilRuler,
-  FaEdit
+  FaPencilAlt,
+  FaEdit,
+  FaClipboardList,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaExclamationCircle
 } from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
 import leadService from "../services/leadService";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { Loading, Skeleton } from "../components";
+
+// Helper function for formatting dates
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Invalid date";
+  
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const isToday = date.toDateString() === today.toDateString();
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+  
+  // Format the time portion
+  const timeOptions = { hour: '2-digit', minute: '2-digit' };
+  const timeString = date.toLocaleTimeString(undefined, timeOptions);
+  
+  // Format the date based on recency
+  if (isToday) {
+    return `Today at ${timeString}`;
+  } else if (isYesterday) {
+    return `Yesterday at ${timeString}`;
+  } else {
+    // Format date for older entries
+    const dateOptions = { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric',
+    };
+    return `${date.toLocaleDateString(undefined, dateOptions)} at ${timeString}`;
+  }
+};
 
 function LeadDetails() {
   const { leadId } = useParams();
@@ -102,30 +140,58 @@ function LeadDetails() {
           minute: "2-digit",
         });
   };
-
   const getStatusColor = (status) => {
     switch (status) {
       case "new":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "contacted":
-        return "bg-purple-100 text-purple-800";
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
       case "qualified":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "proposal":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "negotiation":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "closed-won":
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
+      case "closed-lost":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "new":
+        return <FaInfoCircle className="mr-1" />;
+      case "contacted":
+        return <FaPhone className="mr-1" />;
+      case "qualified":
+        return <FaCheckCircle className="mr-1" />;
+      case "proposal":
+        return <FaEdit className="mr-1" />;
+      case "negotiation":
+        return <FaUser className="mr-1" />;
+      case "closed-won":
+        return <FaCheckCircle className="mr-1" />;
+      case "closed-lost":
+        return <FaTimesCircle className="mr-1" />;
+      default:
+        return null;
     }
   };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "high":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       case "medium":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       case "low":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
   };
 
@@ -165,12 +231,14 @@ function LeadDetails() {
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {lead?.name}
-                </h2>
-                <div className="flex space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead?.status)}`}>
-                    {lead?.status}
+                </h2>                <div className="flex space-x-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(lead?.status)}`}>
+                    {getStatusIcon(lead?.status)} {lead?.status}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead?.priority)}`}>
+                    {lead?.priority === "high" ? <FaExclamationCircle className="mr-1 inline" /> : 
+                     lead?.priority === "medium" ? <FaExclamationCircle className="mr-1 inline" /> :
+                     <FaInfoCircle className="mr-1 inline" />}
                     {lead?.priority}
                   </span>
                 </div>
@@ -377,31 +445,85 @@ function LeadDetails() {
               )}
             </div>
 
-            {/* Follow Ups Section */}
-            {followUps.length > 0 && (
+            {/* Follow Ups Section */}            {followUps.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Follow Ups</h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">Follow Ups</h3>
+                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    {followUps.length} Total
+                  </span>
+                </div>
                 <ul className="space-y-4">
                   {followUps.map((followUp) => (
-                    <li key={followUp._id} className="border-l-4 border-blue-500 pl-4 py-2">
+                    <li key={followUp._id} className={`border-l-4 pl-4 py-3 rounded-r-md ${
+                      followUp.status === 'completed' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' :
+                      followUp.status === 'rescheduled' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                      followUp.status === 'missed' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                      followUp.isOverdue ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
+                      'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {followUp.followUpType === "call" ? "Phone Call" : "Follow Up"} scheduled
-                          </p>
-                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            <FaCalendarAlt className="mr-2" />
-                            <span>{formatDate(followUp.scheduled)}</span>
+                        <div className="flex items-center">
+                          {followUp.followUpType === "call" && <FaPhone className="mr-2 text-gray-600 dark:text-gray-300" />}
+                          {followUp.followUpType === "whatsapp" && <FaWhatsapp className="mr-2 text-gray-600 dark:text-gray-300" />}
+                          {followUp.followUpType === "email" && <FaEnvelope className="mr-2 text-gray-600 dark:text-gray-300" />}
+                          {followUp.followUpType === "meeting" && <FaUser className="mr-2 text-gray-600 dark:text-gray-300" />}
+                          {followUp.followUpType === "other" && <FaInfoCircle className="mr-2 text-gray-600 dark:text-gray-300" />}
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {followUp.followUpType === "call" ? "Phone Call" : 
+                               followUp.followUpType === "whatsapp" ? "WhatsApp Message" :
+                               followUp.followUpType === "email" ? "Email Followup" :
+                               followUp.followUpType === "meeting" ? "Meeting" : "Other Followup"}
+                            </p>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Assigned to: {followUp.assignedTo?.name || "Unassigned"}
+                            </div>
                           </div>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {followUp?.status}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          followUp.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                          followUp.status === 'rescheduled' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                          followUp.status === 'missed' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                          followUp.isOverdue ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        }`}>
+                          {followUp.statusDescription}
+                          {followUp.isOverdue && " (Overdue)"}
                         </span>
                       </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <FaEdit className="mr-2" />
-                        <span>Related note: {followUp?.notes}</span>
+                      
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <FaCalendarAlt className="mr-2 text-gray-500 dark:text-gray-400" />
+                          <span>{formatDate(followUp.scheduled)}</span>
+                          {followUp.timeUntil && (
+                            <span className="ml-2 text-xs italic text-gray-500 dark:text-gray-400">
+                              ({followUp.timeUntil})
+                            </span>
+                          )}
+                        </div>
+                        {followUp.completedAt && (
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                            <FaClock className="mr-2 text-gray-500 dark:text-gray-400" />
+                            <span>Completed: {formatDate(followUp.completedAt)}</span>
+                          </div>
+                        )}
                       </div>
+                      
+                      {followUp.notes && (
+                        <div className="mt-2 flex items-start text-sm text-gray-600 dark:text-gray-300">
+                          <FaEdit className="mr-2 mt-1 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                          <p className="whitespace-pre-wrap">{followUp.notes}</p>
+                        </div>
+                      )}
+                      
+                      {followUp.outcome && (
+                        <div className="mt-2 flex items-start text-sm text-gray-600 dark:text-gray-300">
+                          <FaInfoCircle className="mr-2 mt-1 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                          <p className="font-medium">Outcome: <span className="font-normal">{followUp.outcome}</span></p>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -437,9 +559,14 @@ function LeadDetails() {
               </div>
             </div>
 
-            {/* Activity Timeline */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Activity Timeline</h3>
+            {/* Activity Timeline */}            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Activity Timeline</h3>
+                <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  {activities.length} Activities
+                </span>
+              </div>
+              
               {activities.length > 0 ? (
                 <div className="flow-root">
                   <ul className="-mb-8">
@@ -456,25 +583,77 @@ function LeadDetails() {
                             <div>
                               <span
                                 className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white dark:ring-gray-800 ${
-                                  activity.type === "created"
+                                  activity.type === "call" 
                                     ? "bg-blue-500 text-white"
-                                    : "bg-green-500 text-white"
+                                    : activity.type === "whatsapp" 
+                                    ? "bg-green-500 text-white"
+                                    : activity.type === "email" 
+                                    ? "bg-purple-500 text-white"
+                                    : activity.type === "meeting" 
+                                    ? "bg-yellow-500 text-white"
+                                    : "bg-gray-500 text-white"
                                 }`}
                               >
-                                {activity.type === "created" ? (
-                                  <FaUser className="h-5 w-5" />
+                                {activity.type === "call" ? (
+                                  <FaPhone className="h-4 w-4" />
+                                ) : activity.type === "whatsapp" ? (
+                                  <FaWhatsapp className="h-4 w-4" />
+                                ) : activity.type === "email" ? (
+                                  <FaEnvelope className="h-4 w-4" />
+                                ) : activity.type === "meeting" ? (
+                                  <FaUser className="h-4 w-4" />
+                                ) : activity.type === "note" ? (
+                                  <FaEdit className="h-4 w-4" />
                                 ) : (
-                                  <IoMdTime className="h-5 w-5" />
+                                  <IoMdTime className="h-4 w-4" />
                                 )}
                               </span>
                             </div>
                             <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                               <div>
-                                <p className="text-sm text-gray-800 dark:text-gray-200">
-                                  {activity.type === "created" ? "Lead created" : "Follow up completed"}
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {activity.actionText || activity.type}
+                                  {activity.statusText && (
+                                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                                      activity.status === 'connected' || activity.status === 'completed' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                        : activity.status === 'attempted' 
+                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                        : activity.status === 'not-answered' 
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                                    }`}>
+                                      {activity.statusText}
+                                    </span>
+                                  )}
                                 </p>
+                                {activity.user && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    by {activity.user.name}
+                                  </p>
+                                )}
+                                {activity.duration && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Duration: {activity.durationFormatted}
+                                  </p>
+                                )}
+                                {activity.notes && (
+                                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-wrap">
+                                    {activity.notes}
+                                  </p>
+                                )}
+                                {activity.templateUsed && (
+                                  <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm">
+                                    <p className="font-medium text-xs text-gray-500 dark:text-gray-400">
+                                      Template used: {activity.templateUsed.name}
+                                    </p>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                                      {activity.templateUsed.content}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
-                              <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
+                              <div className="whitespace-nowrap text-right text-xs text-gray-500 dark:text-gray-400">
                                 <time dateTime={activity.createdAt}>
                                   {formatDate(activity.createdAt)}
                                 </time>
@@ -487,8 +666,10 @@ function LeadDetails() {
                   </ul>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500 dark:text-gray-400">No activities yet</p>
+                <div className="text-center py-8">
+                  <FaClipboardList className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+                  <p className="mt-4 text-gray-500 dark:text-gray-400">No activities recorded yet</p>
+                  <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Activities will appear here when you interact with this lead</p>
                 </div>
               )}
             </div>

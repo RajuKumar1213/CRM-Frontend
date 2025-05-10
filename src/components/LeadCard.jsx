@@ -63,18 +63,19 @@ function LeadCard({ lead, onClick, activeTab }) {
         setLoading(false);
       });
   }, []);
-
   // Handle scheduling a follow-up
   const handleScheduleCall = async (data) => {
     setIsSubmitting(true);
     try {
-      const scheduledDate = new Date(`${data.date}T${data.time}:00`).toISOString();
-      const response = await followUpService.scheduleFollowUp({
-        leadId: lead._id,
+      // Set default time to 12:00 PM if not provided
+      const timeValue = data.time || "12:00";
+      const scheduledDate = new Date(`${data.date}T${timeValue}:00`).toISOString();
+      const response = await followUpService.createFollowUp(lead._id, {
         followUpType: data.followUpType,
         scheduled: scheduledDate,
         notes: data.notes || "",
       });
+      
       if (response.statusCode !== 201) {
         throw new Error("Failed to schedule follow-up");
       }
@@ -113,7 +114,7 @@ function LeadCard({ lead, onClick, activeTab }) {
           >
             {lead?.status || "New"}
           </span>
-          <Link to={`/leads/${lead._id}`}>
+          <Link to={`/leads/detail/${lead._id}`}>
             <button
               className="p-1 text-xs text-orange-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md"
               aria-label="View lead details"
@@ -253,26 +254,20 @@ function LeadCard({ lead, onClick, activeTab }) {
                     {errors.date.message}
                   </p>
                 )}
-              </div>
-              <div>
+              </div>              <div>
                 <label
                   htmlFor="time"
                   className="block text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Time
+                  Time (Optional)
                 </label>
                 <input
                   type="time"
                   id="time"
-                  {...register("time", { required: "Time is required" })}
+                  {...register("time")}
                   className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="Follow-up time"
                 />
-                {errors.time && (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {errors.time.message}
-                  </p>
-                )}
               </div>
               <div>
                 <label

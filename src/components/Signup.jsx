@@ -20,28 +20,38 @@ const Signup = () => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-
   const handleSignup = (data) => {
     setLoading(true);
     setIsSubmitting(true);
     setError("");
+    
     if (!data) {
-      console.log("No data found");
+      toast.error("No form data provided");
+      setLoading(false);
+      setIsSubmitting(false);
+      return;
     }
+    
     authService
       .registerUser(data)
       .then((response) => {
         if (response.statusCode === 201) {
-          toast.success("Account created successfully! Now you can login");
-          navigate("/login");
+          toast.success("Account created successfully! Please login with your credentials");
+          setTimeout(() => {
+            navigate("/login");
+          }, 1500); // Short delay to show the success message
+        } else {
+          // Handle unexpected success status
+          toast.warning("Account created with unexpected status. Please try logging in.");
+          setTimeout(() => {
+            navigate("/login");
+          }, 1500);
         }
-        setLoading(false);
-        setError("");
       })
       .catch((error) => {
-        toast.success(extractErrorMessage(error));
-        setError(extractErrorMessage(error));
-        setLoading(false);
+        const errorMessage = extractErrorMessage(error);
+        toast.error(errorMessage);
+        setError(errorMessage);
       })
       .finally(() => {
         setLoading(false);

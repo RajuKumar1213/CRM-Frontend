@@ -7,8 +7,6 @@ import toast from 'react-hot-toast';
 import { logout } from '../redux/features/authSlice';
 import Loading from './Loading';
 
-
-
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -17,63 +15,81 @@ const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check auth status whenever redux state or localStorage changes
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+    setIsAuthenticated(!!accessToken && status);
+  }, [status]);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsOpen(false);
+    setIsProfileOpen(false);
+  }, [location.pathname]);
 
   const toggleMenu = () => {
-    if(isOpen == true){
-      setIsOpen(false)
-    }else {
-      setIsOpen(true)
-    }
+    setIsOpen(!isOpen);
   } 
     
   const toggleProfile = () => {
-    if(isProfileOpen == true){
-      setIsProfileOpen(false)
-    }else {
-      setIsProfileOpen(true)
-    }
+    setIsProfileOpen(!isProfileOpen);
   };
 
   // Check if a link is active
   const isActive = (url) => location.pathname === url;
 
+  // Determine dashboard URL based on user role (with fallback)
+  const getDashboardUrl = () => {
+    if (!userData) return '/admin-dashboard';
+    return userData.role === 'employee' ? '/e-dashboard' : '/admin-dashboard';
+  };
+
   const navLinks = [
     {
       name: 'Dashboard',
-      url: userData?.role === "employee" ? '/e-dashboard' : '/admin-dashboard'
+      url: getDashboardUrl()
     },
     { name: 'Leads', url: '/leads' },
     { name: 'Contacts', url: '/contacts' },
     { name: 'Tasks', url: '/tasks' },
   ];
   
-  
   const profileLinks = [
     { name: 'Profile', url: '/profile' },
     { name: 'Settings', url: '/settings' },
   ];
   
-const handleLogout = () => {
-  setLoading(true);
-  authService.logoutUser().then((response) => {
-    if (response.statusCode === 200) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("role");
-      dispatch(logout());
-      toast.success("Logged out successfully!")
-      navigate("/");
-      setIsOpen(false);
-      setIsProfileOpen(false);
-    }
-  }).catch((error) => {
-    toast.error(error.message);
-  }).finally(() => {
-    setLoading(false);
-  })
-
-  
-};
+  const handleLogout = () => {
+    setLoading(true);
+    authService.logoutUser()
+      .then((response) => {
+        if (response.statusCode === 200) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("role");
+          dispatch(logout());
+          toast.success("Logged out successfully!")
+          navigate("/");
+          setIsOpen(false);
+          setIsProfileOpen(false);
+        }
+      })
+      .catch((error) => {
+        // Handle failed logout - still clear local session in case of API failure
+        console.error("Logout error:", error);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("role");
+        dispatch(logout());
+        toast.error("Logout failed, but you've been signed out locally");
+        navigate("/");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   return (
     <nav className="bg-[#1e1e2e]/90 backdrop-blur-md border-b border-[#ffffff10] fixed top-0 w-full z-50">
@@ -111,7 +127,7 @@ const handleLogout = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-1">
-            {status &&
+            {isAuthenticated && 
               navLinks.map((link) => (
                 <Link
                   key={link.name}
@@ -127,7 +143,7 @@ const handleLogout = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {status ? (
+            {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={toggleProfile}
@@ -137,7 +153,7 @@ const handleLogout = () => {
                     {userData?.name?.charAt(0).toUpperCase() || <FaUserCircle size={18} />}
                   </div>
                   <span className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
-                    {userData?.name}
+                    {userData?.name || "User"}
                   </span>
                   <FaChevronDown 
                     size={12} 
@@ -148,8 +164,8 @@ const handleLogout = () => {
                 {isProfileOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-[#2a2a3a] rounded-md profile-card overflow-hidden z-20 fade-in border border-[#ffffff10]">
                     <div className="px-4 py-3 border-b border-[#ffffff10]">
-                      <p className="text-sm text-white font-medium">{userData?.name}</p>
-                      <p className="text-xs text-white/60 truncate">{userData?.email}</p>
+                      <p className="text-sm text-white font-medium">{userData?.name || "User"}</p>
+                      <p className="text-xs text-white/60 truncate">{userData?.email || "user@example.com"}</p>
                     </div>
                     <div className="py-1">
                       {profileLinks.map((link) => (
@@ -167,9 +183,10 @@ const handleLogout = () => {
                       <button
                         onClick={handleLogout}
                         className="flex items-center w-full px-4 py-2 text-sm text-[#ff6b6b] hover:bg-[#ff6b6b]/10 transition-colors cursor-pointer"
+                        disabled={loading}
                       >
                         <FaSignOutAlt className="mr-2" />
-                        Logout
+                        {loading ? 'Logging out...' : 'Logout'}
                       </button>
                     </div>
                   </div>
@@ -213,7 +230,7 @@ const handleLogout = () => {
       {isOpen && (
         <div className="md:hidden bg-[#2a2a3a]/95 backdrop-blur-md fade-in border-t border-[#ffffff10]">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {status ? (
+            {isAuthenticated ? (
               <>
                 {navLinks.map((link) => (
                   <Link
@@ -231,9 +248,10 @@ const handleLogout = () => {
                 <button
                   onClick={handleLogout}
                   className="flex items-center w-full px-3 py-2 text-base font-medium text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-md transition-colors"
+                  disabled={loading}
                 >
                   <FaSignOutAlt className="mr-2" />
-                 {loading && <Loading/>} Logout
+                  {loading ? 'Logging out...' : 'Logout'}
                 </button>
               </>
             ) : (
@@ -264,5 +282,8 @@ const handleLogout = () => {
     </nav>
   );
 };
+
+ 
+
 
 export default Navbar;

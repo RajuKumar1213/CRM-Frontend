@@ -21,7 +21,6 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const handleLogin = (data) => {
     setLoading(true);
     setError("");
@@ -35,31 +34,39 @@ const Login = () => {
       .loginUser(data)
       .then((response) => {
         if (response.statusCode === 200 && response.data) {
-
           const role = response?.data?.user?.role;
           const { accessToken, refreshToken } = response.data;
 
           // Store access token in localStorage
-          if (accessToken && role ) {
+          if (accessToken && role) {
             localStorage.setItem("accessToken", accessToken);
             localStorage.setItem("role", role);
+            
+            // Set auth header for immediate API calls
+            if (accessToken) {
+              authService.setAuthHeader(accessToken);
+            }
           } else {
-            throw new Error("Access token not provided in response");
+            throw new Error("Access token or role not provided in response");
           }
 
-          // Store refresh token in secure HttpOnly cookie
+          // Store refresh token in localStorage for token refresh mechanism
           if (refreshToken) {
-            const cookieExpires = new Date(
-              Date.now() + 2 * 24 * 60 * 60 * 1000
-            ); // 7 days
-            document.cookie = `refreshToken=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Expires=${cookieExpires.toUTCString()}`;
+            localStorage.setItem("refreshToken", refreshToken);
           } else {
             throw new Error("Refresh token not provided in response");
           }
 
+          // Update Redux state with user data
           dispatch(login(response.data.user));
           toast.success("Logged in successfully!");
-          navigate("/e-dashboard"); // Adjust redirect as needed
+          
+          // Navigate to appropriate dashboard based on role
+          if (role === "admin") {
+            navigate("/admin-dashboard");
+          } else {
+            navigate("/e-dashboard");
+          }
         } else {
           throw new Error("Invalid response from server");
         }
@@ -68,6 +75,11 @@ const Login = () => {
         const errorMessage = extractErrorMessage(error);
         toast.error(errorMessage);
         setError(errorMessage);
+        
+        // Clear any partial auth data on login failure
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("role");
       })
       .finally(() => {
         setLoading(false);

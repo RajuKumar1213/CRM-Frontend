@@ -1,6 +1,65 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500&display=swap");
 
 @import "tailwindcss";
+
+/* Root variables for light/dark mode */
+:root {
+  --background: 250 250 250;
+  --foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --card: 255 255 255;
+  --card-foreground: 15 23 42;
+  --border: 226 232 240;
+  --input: 226 232 240;
+  --primary: 255 123 37;
+  --primary-foreground: 255 255 255;
+  --secondary: 243 244 246;
+  --secondary-foreground: 15 23 42;
+  --accent: 243 244 246;
+  --accent-foreground: 15 23 42;
+  --ring: 255 123 37;
+}
+
+.dark {
+  --background: 15 23 42;
+  --foreground: 239 246 255;
+  --muted: 30 41 59;
+  --muted-foreground: 148 163 184;
+  --card: 30 41 59;
+  --card-foreground: 239 246 255;
+  --border: 51 65 85;
+  --input: 51 65 85;
+  --primary: 255 123 37;
+  --primary-foreground: 255 255 255;
+  --secondary: 51 65 85;
+  --secondary-foreground: 239 246 255;
+  --accent: 51 65 85;
+  --accent-foreground: 239 246 255;
+  --ring: 255 123 37;
+}
+
+/* Apply system preference by default */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: 15 23 42;
+    --foreground: 239 246 255;
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    --card: 30 41 59;
+    --card-foreground: 239 246 255;
+    --border: 51 65 85;
+    --input: 51 65 85;
+    --primary: 255 123 37;
+    --primary-foreground: 255 255 255;
+    --secondary: 51 65 85;
+    --secondary-foreground: 239 246 255;
+    --accent: 51 65 85;
+    --accent-foreground: 239 246 255;
+    --ring: 255 123 37;
+  }
+}
+
 .auth-layout {
     @apply min-h-screen;
   }

@@ -15,11 +15,11 @@ import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { LeadSkeleton } from "../components";
 
-const LeadComponent = () => {
-  const [loading, setLoading] = useState(true);
+const LeadComponent = () => {  const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
   const [todayFollowups, setTodayFollowups] = useState({ count: 0, followUps: [] });
   const [dueFollowups, setDueFollowups] = useState({ count: 0, followUps: [] });
+  const [upcomingFollowups, setUpcomingFollowups] = useState({ count: 0, data: [] });
   const [activeTab, setActiveTab] = useState("today-followups");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddLead, setShowAddLead] = useState(false);
@@ -28,13 +28,13 @@ const LeadComponent = () => {
 
   // Fetch all data on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
+    const fetchData = async () => {      try {
         setLoading(true);
-        const [leadResponse, todayResponse, overdueResponse] = await Promise.all([
+        const [leadResponse, todayResponse, overdueResponse, upcomingResponse] = await Promise.all([
           leadService.getUserLeads(),
           followUpService.getTodayFollowUps(),
           followUpService.getOverdueFollowUps(),
+          followUpService.getUpcomingFollowUps(),
         ]);
 
         if (leadResponse.statusCode === 200) {
@@ -45,6 +45,9 @@ const LeadComponent = () => {
         }
         if (overdueResponse.statusCode === 200) {
           setDueFollowups(overdueResponse.data);
+        }
+        if (upcomingResponse.statusCode === 200) {
+          setUpcomingFollowups(upcomingResponse.data);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -137,8 +140,7 @@ const LeadComponent = () => {
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
                 {todayFollowups?.count || 0}
               </span>
-            </button>
-            <button
+            </button>            <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
                 activeTab === "overdue-followups"
                   ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
@@ -149,6 +151,19 @@ const LeadComponent = () => {
               <span>Overdue Follow-ups</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
                 {dueFollowups?.count || 0}
+              </span>
+            </button>
+            <button
+              className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
+                activeTab === "upcoming-followups"
+                  ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
+                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
+              } transition-colors duration-200`}
+              onClick={() => setActiveTab("upcoming-followups")}
+            >
+              <span>Upcoming Follow-ups</span>
+              <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
+                {upcomingFollowups?.count || 0}
               </span>
             </button>
             <button
@@ -216,10 +231,10 @@ const LeadComponent = () => {
         <main className="flex-1 p-2 md:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-              <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {activeTab === "today-followups" && "Today's Follow-ups"}
                   {activeTab === "overdue-followups" && "Overdue Follow-ups"}
+                  {activeTab === "upcoming-followups" && "Upcoming Follow-ups"}
                   {activeTab === "new" && "New Leads"}
                   {activeTab === "all" && "All Leads"}
                 </h2>
@@ -235,8 +250,7 @@ const LeadComponent = () => {
                     aria-label="View analytics"
                   >
                     <FaChartBar />
-                  </button>
-                </div>
+                  </button>                </div>
               </div>
 
               <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
@@ -247,6 +261,19 @@ const LeadComponent = () => {
                         activeTab={activeTab}
                         key={followUp._id}
                         followUp={followUp}
+                        onUpdate={(updatedFollowUp) => {
+                          if (updatedFollowUp) {
+                            setTodayFollowups(prev => ({
+                              ...prev,
+                              followUps: prev.followUps.map(fu => 
+                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
+                              )
+                            }));
+                          } else {
+                            // Refresh data if onUpdate is called with null (complete refresh signal)
+                            fetchData();
+                          }
+                        }}
                       />
                     ))
                   ) : (
@@ -261,11 +288,51 @@ const LeadComponent = () => {
                         activeTab={activeTab}
                         key={followUp._id}
                         followUp={followUp}
+                        onUpdate={(updatedFollowUp) => {
+                          if (updatedFollowUp) {
+                            setDueFollowups(prev => ({
+                              ...prev,
+                              followUps: prev.followUps.map(fu => 
+                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
+                              )
+                            }));
+                          } else {
+                            // Refresh data if onUpdate is called with null
+                            fetchData();
+                          }
+                        }}
                       />
                     ))
                   ) : (
                     <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
                       No overdue follow-ups
+                    </div>
+                  )
+                ) : activeTab === "upcoming-followups" ? (
+                  upcomingFollowups.count !== 0 ? (
+                    upcomingFollowups.data.map((followUp) => (
+                      <UpcommingFollowups
+                        activeTab={activeTab}
+                        key={followUp._id}
+                        followUp={followUp}
+                        onUpdate={(updatedFollowUp) => {
+                          if (updatedFollowUp) {
+                            setUpcomingFollowups(prev => ({
+                              ...prev,
+                              data: prev.data.map(fu => 
+                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
+                              )
+                            }));
+                          } else {
+                            // Refresh data if onUpdate is called with null
+                            fetchData();
+                          }
+                        }}
+                      />
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
+                      No upcoming follow-ups
                     </div>
                   )
                 ) : filteredLeads.length === 0 ? (

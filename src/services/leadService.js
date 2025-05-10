@@ -90,18 +90,25 @@ export class LeadService {
       );
       throw error.response?.data || "Failed to process WhatsApp webhook.";
     }
-  }
-
-  async getActivities() {
+  }  async getActivities(limit = 10) {
     try {
-      const response = await api.get("/lead/activities");
+      const response = await api.get(`/lead/activities?limit=${limit}`);
+      console.log("Raw activity response:", response.data);
       return response.data;
     } catch (error) {
       console.error(
-        "ERROR :: fetching activites. ::",
+        "ERROR :: fetching activities ::",
         error.response?.data || error.message
       );
-      throw error.response?.data || "Failed to fetch activites..";
+      // Return a fallback response with empty activities
+      return {
+        statusCode: 200,
+        data: {
+          count: 0,
+          activities: []
+        },
+        message: "Failed to fetch activities" 
+      };
     }
   }
 }

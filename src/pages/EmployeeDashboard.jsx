@@ -23,22 +23,24 @@ import UpcommingFollowups from "../components/UpcommingFollowups";
 import followUpService from "../services/followupService";
 
 const EmployeeDashboard = () => {
-  const userData = useSelector((state) => state.auth.userData);
-  const [activities, setActivities] = useState(null);
+  const userData = useSelector((state) => state.auth.userData);  const [activities, setActivities] = useState(null);
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState(null);
   const [followups, setFollowups] = useState(null);
-  const [todayfollowups , setTodayfollowups] = useState(null)
-  const [dueFolloups , setDueFolloups] = useState(null)
-
-
+  const [todayfollowups , setTodayfollowups] = useState(null);
+  const [dueFolloups , setDueFolloups] = useState(null);
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   useEffect(() => {
-    leadService.getActivities().then((response) => {
+    leadService.getActivities(10).then((response) => {
       if (response.statusCode === 200) {
+        console.log("Activities response:", response.data);
         setActivities(response.data);
         setLoading(false);
       }
+    }).catch(error => {
+      console.error("Error fetching activities:", error);
+      setLoading(false);
     });
   }, []);
 
@@ -228,23 +230,21 @@ const EmployeeDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Activity */}
 
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Recent Activity
               </h3>
-              <Link
-                to="/activity"
+              <button
+                onClick={() => setShowAllActivities(true)}
                 className="text-sm text-orange-500 hover:underline"
               >
                 View All
-              </Link>
+              </button>
             </div>
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {loading ? (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">              {loading ? (
                 <Loading />
-              ) : activities ? (
-                activities.map((activity) => (
+              ) : activities?.activities && activities.activities.length > 0 ? (
+                activities.activities.slice(0, 5).map((activity) => (
                   <div
                     key={activity?._id}
                     className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -253,7 +253,13 @@ const EmployeeDashboard = () => {
                   </div>
                 ))
               ) : (
-                <h1>Not activities found</h1>
+                <div className="p-8 text-center">
+                  <FaHistory className="mx-auto text-gray-300 dark:text-gray-600 text-4xl mb-3" />
+                  <h3 className="text-gray-500 dark:text-gray-400 font-medium">No activities found</h3>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+                    Your recent activities will appear here
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -392,6 +398,61 @@ const EmployeeDashboard = () => {
           </div> */}
         </div>
       </div>
+
+      {/* Modal for showing all activities */}
+      {showAllActivities && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                All Activities
+              </h3>
+              <button
+                onClick={() => setShowAllActivities(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto flex-grow divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
+                <div className="p-8 text-center">
+                  <Loading />
+                </div>
+              ) : activities?.activities && activities.activities.length > 0 ? (
+                activities.activities.map((activity) => (
+                  <div
+                    key={activity?._id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <RecentActivity activity={activity} />
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center">
+                  <FaHistory className="mx-auto text-gray-300 dark:text-gray-600 text-4xl mb-3" />
+                  <h3 className="text-gray-500 dark:text-gray-400 font-medium">No activities found</h3>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+                    Your recent activities will appear here
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+              <button
+                onClick={() => setShowAllActivities(false)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

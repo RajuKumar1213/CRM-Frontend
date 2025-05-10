@@ -1,11 +1,23 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaUsers, FaChartLine, FaProjectDiagram, FaBell, FaShieldAlt, FaMobileAlt } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 
 const Home = () => {
 
   const {status, userData} = useSelector((state) => state.auth)
+  const navigate = useNavigate();
+  const handleAdminPortalClick = (e) => {
+    if (status && userData?.role === "employee") {
+      e.preventDefault();
+      toast.error("You don't have permission to access the Admin Portal");
+      return;
+    }
+    
+    // Navigate based on authentication status
+    navigate(status ? "/admin-dashboard" : "/login");
+  };
 
   return (
     <div className="bg-gray-900 min-h-screen text-gray-100">
@@ -36,10 +48,9 @@ const Home = () => {
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-10 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 shadow-lg shadow-orange-500/20"
           >
             Access Dashboard
-          </Link>
-          <Link
-            to={"/admin-dashboard"}
+          </Link>          <Link
             className="border-2 border-gray-600 hover:border-orange-500 text-white px-10 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 hover:text-orange-400"
+            onClick={handleAdminPortalClick}
           >
             Admin Portal
           </Link>
