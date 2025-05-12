@@ -117,6 +117,19 @@ export class FollowUpService {
       throw error.response?.data || "Failed to fetch upcoming follow-ups.";
     }
   }
+
+  async getLeadFollowUps(leadId) {
+    try {
+      const response = await api.get(`/followup/lead/${leadId}`);
+      return response.data;
+    } catch (error) {
+      console.error(
+        "ERROR :: fetching lead follow-ups ::",
+        error.response?.data || error.message
+      );
+      throw error.response?.data || "Failed to fetch lead follow-ups.";
+    }
+  }
 }
 
 const followUpService = new FollowUpService();

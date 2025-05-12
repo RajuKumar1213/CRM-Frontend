@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FaPhone, FaWhatsapp, FaCalendar, FaTag, FaClock, FaEnvelope } from "react-icons/fa";
+import {
+  FaPhone,
+  FaWhatsapp,
+  FaCalendar,
+  FaTag,
+  FaClock,
+  FaEnvelope,
+} from "react-icons/fa";
 import { Link } from "react-router-dom";
 import whatsappService from "../services/whatsappService";
 import followUpService from "../services/followupService";
@@ -8,9 +15,9 @@ import Loading from "./Loading";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 
-function LeadCard({ lead, onClick, activeTab }) {
+function LeadCard({ lead, onClick }) {
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,12 +31,9 @@ function LeadCard({ lead, onClick, activeTab }) {
 
   const statusColors = {
     new: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
-    contacted: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200",
-    qualified: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
-    proposal: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
-    negotiation: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
-    "closed-won": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
-    "closed-lost": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
+    'in-progress': "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+    won: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+    lost: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
   };
 
   const formatDate = (date) => {
@@ -46,40 +50,89 @@ function LeadCard({ lead, onClick, activeTab }) {
 
   const normalizedStatus = lead?.status?.toLowerCase() || "new";
 
-  // Fetch WhatsApp templates
+  // Fetch WhatsApp templates when WhatsApp modal opens
   useEffect(() => {
-    whatsappService
-      .getWhatsappTemplates()
-      .then((response) => {
-        if (response.statusCode === 200) {
-          setWhatsappTemplates(response.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching WhatsApp templates:", error);
-        toast.error("Failed to load WhatsApp templates");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+    if (isWhatsAppModalOpen) {
+      setLoading(true);
+      whatsappService
+        .getWhatsappTemplates()
+        .then((response) => {
+          if (response.statusCode === 200) {
+            setWhatsappTemplates(response.data.templates || []);
+          } else {
+            setWhatsappTemplates([]);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching WhatsApp templates:", error);
+          toast.error("Failed to load WhatsApp templates");
+          setWhatsappTemplates([]);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isWhatsAppModalOpen]);
+
   // Handle scheduling a follow-up
   const handleScheduleCall = async (data) => {
     setIsSubmitting(true);
     try {
       // Set default time to 12:00 PM if not provided
       const timeValue = data.time || "12:00";
-      const scheduledDate = new Date(`${data.date}T${timeValue}:00`).toISOString();
-      const response = await followUpService.createFollowUp(lead._id, {
-        followUpType: data.followUpType,
+      const scheduledDate = new Date(
+        `${data.date}T${timeValue}:00`
+      ).toISOString();
+      // Create follow-up data with correct status field
+      const followUpData = {
+        followUpType: "call", // Default to call type
         scheduled: scheduledDate,
         notes: data.notes || "",
-      });
-      
-      if (response.statusCode !== 201) {
-        throw new Error("Failed to schedule follow-up");
+        status: data.status, // Using status from the form
+      };
+
+      // First, try to get existing follow-ups for this lead
+      let followUps = [];
+      try {
+        const followUpsResponse = await followUpService.getLeadFollowUps(
+          lead._id
+        );
+        if (followUpsResponse.statusCode === 200) {
+          followUps = followUpsResponse.data.followUps || [];
+        }
+      } catch (error) {
+        console.error("Error fetching lead follow-ups:", error);
+        // Continue with creating a new follow-up if we can't get existing ones
       }
-      toast.success("Follow-up scheduled successfully!");
+
+      let response;
+      // If the lead is not new and has existing follow-ups, update the latest one
+      if (lead.status !== "new" && followUps.length > 0) {
+        // Get the latest follow-up by checking scheduled date
+        const latestFollowUp = followUps.reduce((latest, current) => {
+          const currentDate = new Date(current.scheduled);
+          const latestDate = new Date(latest.scheduled);
+          return currentDate > latestDate ? current : latest;
+        }, followUps[0]);
+
+        // Update the latest follow-up
+        response = await followUpService.updateFollowUp(
+          latestFollowUp._id,
+          followUpData
+        );
+
+        if (response.statusCode !== 200) {
+          throw new Error("Failed to reschedule follow-up");
+        }
+        toast.success("Follow-up rescheduled successfully!");
+      } else {
+        // If no existing follow-ups or it's a new lead, create a new one
+        response = await followUpService.createFollowUp(lead._id, followUpData);
+
+        if (response.statusCode !== 201) {
+          throw new Error("Failed to schedule follow-up");
+        }
+        toast.success("Follow-up scheduled successfully!");
+      }
+
       setIsScheduleModalOpen(false);
       reset();
     } catch (error) {
@@ -154,7 +207,8 @@ function LeadCard({ lead, onClick, activeTab }) {
         <div className="mt-2 flex items-center text-sm">
           <FaClock className="mr-2 text-gray-500 dark:text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">
-            {lead.followUps.filter((fu) => !fu.completed).length} pending follow-ups
+            {lead.followUps.filter((fu) => !fu.completed).length} pending
+            follow-ups
           </span>
         </div>
       )}
@@ -182,10 +236,12 @@ function LeadCard({ lead, onClick, activeTab }) {
         <button
           onClick={() => setIsScheduleModalOpen(true)}
           className="flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200"
-          aria-label={`Schedule follow-up for ${lead.name}`}
+          aria-label={`${
+            lead.status === "new" ? "Schedule" : "Reschedule"
+          } follow-up for ${lead.name}`}
         >
           <FaCalendar className="mr-1" />
-          Schedule
+          {lead.status === "new" ? "Schedule" : "Reschedule"}
         </button>
       </div>
 
@@ -199,8 +255,8 @@ function LeadCard({ lead, onClick, activeTab }) {
             <div>
               {loading ? (
                 <Loading h={4} w={4} />
-              ) : whatsappTemplates?.templates?.length ? (
-                whatsappTemplates.templates.map((template) => (
+              ) : whatsappTemplates.length ? (
+                whatsappTemplates.map((template) => (
                   <WhatsappTemplate
                     leadId={lead._id}
                     key={template._id}
@@ -231,10 +287,15 @@ function LeadCard({ lead, onClick, activeTab }) {
       {isScheduleModalOpen && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md transform scale-95 animate-in">
+            {" "}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Schedule Follow-Up for {lead?.name}
+              {lead.status === "new" ? "Schedule" : "Reschedule"} Follow-Up for{" "}
+              {lead?.name}
             </h3>
-            <form onSubmit={handleSubmit(handleScheduleCall)} className="space-y-4">
+            <form
+              onSubmit={handleSubmit(handleScheduleCall)}
+              className="space-y-4"
+            >
               <div>
                 <label
                   htmlFor="date"
@@ -254,7 +315,8 @@ function LeadCard({ lead, onClick, activeTab }) {
                     {errors.date.message}
                   </p>
                 )}
-              </div>              <div>
+              </div>{" "}
+              <div>
                 <label
                   htmlFor="time"
                   className="block text-xs font-medium text-gray-700 dark:text-gray-300"
@@ -267,29 +329,30 @@ function LeadCard({ lead, onClick, activeTab }) {
                   {...register("time")}
                   className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="Follow-up time"
-                />
-              </div>
+                />{" "}
+              </div>{" "}
               <div>
                 <label
-                  htmlFor="followUpType"
+                  htmlFor="status"
                   className="block text-xs font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Type
+                  Status
                 </label>
                 <select
-                  id="followUpType"
-                  {...register("followUpType", { required: "Type is required" })}
+                  id="status"
+                  {...register("status", { required: "Status is required" })}
                   className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  aria-label="Follow-up type"
+                  aria-label="Follow-up status"
+                  defaultValue="new"
                 >
-                  <option value="call">Call</option>
-                  <option value="email">Email</option>
-                  <option value="meeting">Meeting</option>
-                  <option value="whatsapp">WhatsApp</option>
+                  <option value="new">New</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="won">Won</option>
+                  <option value="lost">Lost</option>
                 </select>
-                {errors.followUpType && (
+                {errors.status && (
                   <p className="text-xs text-red-600 dark:text-red-400">
-                    {errors.followUpType.message}
+                    {errors.status.message}
                   </p>
                 )}
               </div>
@@ -317,14 +380,22 @@ function LeadCard({ lead, onClick, activeTab }) {
                   aria-label="Cancel scheduling"
                 >
                   Cancel
-                </button>
+                </button>{" "}
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-3 py-1 text-xs text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200 disabled:opacity-50"
-                  aria-label="Schedule follow-up"
+                  aria-label={`${
+                    lead.status === "new" ? "Schedule" : "Reschedule"
+                  } follow-up`}
                 >
-                  {isSubmitting ? "Scheduling..." : "Schedule"}
+                  {isSubmitting
+                    ? lead.status === "new"
+                      ? "Scheduling..."
+                      : "Rescheduling..."
+                    : lead.status === "new"
+                    ? "Schedule"
+                    : "Reschedule"}
                 </button>
               </div>
             </form>

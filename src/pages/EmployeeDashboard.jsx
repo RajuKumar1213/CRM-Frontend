@@ -329,7 +329,7 @@ const EmployeeDashboard = () => {
             ) : followups ? (
               followups?.data?.slice(0, 3)?.map((followup) => (
                 <UpcommingFollowups key={followup._id} followUp={followup} />
-              ))
+              ))  
             ) : (
               <h1>No followups Available.</h1>
             )}

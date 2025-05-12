@@ -1,0 +1,7 @@
+/* Import Tailwind CSS */
+@import "tailwindcss";
+
+/* Make sure dark mode is properly configured */
+.dark {
+  color-scheme: dark;
+}

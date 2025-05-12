@@ -206,12 +206,7 @@ const AdminDashboard = () => {
             ))}
           </ul>
           
-          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button className="flex items-center p-3 w-full text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-              <FiLogOut className="mr-3" />
-              Logout
-            </button>
-          </div>
+    
         </div>
 
         {/* **Main Content** */}

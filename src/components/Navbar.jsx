@@ -6,6 +6,7 @@ import authService from '../services/authService';
 import toast from 'react-hot-toast';
 import { logout } from '../redux/features/authSlice';
 import Loading from './Loading';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,8 +53,8 @@ const Navbar = () => {
       url: getDashboardUrl()
     },
     { name: 'Leads', url: '/leads' },
-    { name: 'Contacts', url: '/contacts' },
-    { name: 'Tasks', url: '/tasks' },
+    // { name: 'Contacts', url: '/contacts' },
+    // { name: 'Tasks', url: '/tasks' },
   ];
   
   const profileLinks = [
@@ -92,7 +93,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-[#1e1e2e]/90 backdrop-blur-md border-b border-[#ffffff10] fixed top-0 w-full z-50">
+    <nav className="bg-white dark:bg-[#1e1e2e]/90 backdrop-blur-md shadow-sm dark:shadow-none border-b border-gray-200 dark:border-[#ffffff10] fixed top-0 w-full z-50 transition-colors duration-300">
       <style>
         {`
           .fade-in { animation: fadeIn 0.2s ease-out; }
@@ -119,7 +120,7 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <span className="text-2xl font-bold text-white orange-glow tracking-tight">
+              <span className="text-2xl font-bold text-gray-900 dark:text-white orange-glow tracking-tight">
                 CRM<span className="text-[#ff7b25]">Pro</span>
               </span>
             </Link>
@@ -132,7 +133,7 @@ const Navbar = () => {
                 <Link
                   key={link.name}
                   to={link.url}
-                  className={`nav-link px-4 py-2 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200 ${
+                  className={`nav-link px-4 py-2 text-sm font-medium text-gray-700 dark:text-white/90 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 ${
                     isActive(link.url) ? 'active' : ''
                   }`}
                 >
@@ -143,46 +144,49 @@ const Navbar = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   onClick={toggleProfile}
                   className="flex items-center space-x-2 group cursor-pointer"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ff7b25]/20 text-[#ff7b25] border border-[#ff7b25]/30">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 dark:bg-[#ff7b25]/20 text-orange-500 dark:text-[#ff7b25] border border-orange-200 dark:border-[#ff7b25]/30">
                     {userData?.name?.charAt(0).toUpperCase() || <FaUserCircle size={18} />}
                   </div>
-                  <span className="text-sm font-medium text-white/90 group-hover:text-white transition-colors">
+                  <span className="text-sm font-medium text-gray-700 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
                     {userData?.name || "User"}
                   </span>
                   <FaChevronDown 
                     size={12} 
-                    className={`text-white/60 transition-transform ${isProfileOpen ? 'transform rotate-180' : ''}`} 
+                    className={`text-gray-500 dark:text-white/60 transition-transform ${isProfileOpen ? 'transform rotate-180' : ''}`} 
                   />
                 </button>
                 
                 {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-[#2a2a3a] rounded-md profile-card overflow-hidden z-20 fade-in border border-[#ffffff10]">
-                    <div className="px-4 py-3 border-b border-[#ffffff10]">
-                      <p className="text-sm text-white font-medium">{userData?.name || "User"}</p>
-                      <p className="text-xs text-white/60 truncate">{userData?.email || "user@example.com"}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#2a2a3a] rounded-md profile-card overflow-hidden z-20 fade-in border border-gray-100 dark:border-[#ffffff10]">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-[#ffffff10]">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">{userData?.name || "User"}</p>
+                      <p className="text-xs text-gray-500 dark:text-white/60 truncate">{userData?.email || "user@example.com"}</p>
                     </div>
                     <div className="py-1">
                       {profileLinks.map((link) => (
                         <Link
                           key={link.name}
                           to={link.url}
-                          className="block px-4 py-2 text-sm text-white/80 hover:bg-[#ff7b25]/10 hover:text-white transition-colors"
+                          className="block px-4 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-[#ff7b25]/10 hover:text-gray-900 dark:hover:text-white transition-colors"
                           onClick={toggleProfile}
                         >
                           {link.name}
                         </Link>
                       ))}
                     </div>
-                    <div className="py-1 border-t border-[#ffffff10]">
+                    <div className="py-1 border-t border-gray-100 dark:border-[#ffffff10]">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-[#ff6b6b] hover:bg-[#ff6b6b]/10 transition-colors cursor-pointer"
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-[#ff6b6b] hover:bg-red-50 dark:hover:bg-[#ff6b6b]/10 transition-colors cursor-pointer"
                         disabled={loading}
                       >
                         <FaSignOutAlt className="mr-2" />
@@ -196,7 +200,7 @@ const Navbar = () => {
               <div className="hidden md:flex items-center space-x-3">
                 <Link
                   to="/login"
-                  className={`px-3 py-1.5 text-sm font-medium text-white/90 hover:text-white transition-colors nav-link ${
+                  className={`px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-white/90 hover:text-gray-900 dark:hover:text-white transition-colors nav-link ${
                     isActive('/login') ? 'active' : ''
                   }`}
                 >
@@ -217,7 +221,7 @@ const Navbar = () => {
             <div className="md:hidden flex items-center">
               <button
                 onClick={toggleMenu}
-                className="text-white/90 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
+                className="text-gray-700 dark:text-white/90 hover:text-gray-900 dark:hover:text-white transition-colors p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10"
               >
                 {isOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
               </button>
@@ -228,16 +232,20 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-[#2a2a3a]/95 backdrop-blur-md fade-in border-t border-[#ffffff10]">
+        <div className="md:hidden bg-white dark:bg-[#2a2a3a]/95 backdrop-blur-md fade-in border-t border-gray-100 dark:border-[#ffffff10]">
           <div className="px-2 pt-2 pb-3 space-y-1">
+            <div className="flex items-center justify-center py-2">
+              <ThemeToggle />
+            </div>
+            
             {isAuthenticated ? (
               <>
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
                     to={link.url}
-                    className={`block px-3 py-2 text-base font-medium text-white/90 hover:text-white hover:bg-white/5 rounded-md transition-colors ${
-                      isActive(link.url) ? 'bg-[#ff7b25]/10 text-white' : ''
+                    className={`block px-3 py-2 text-base font-medium text-gray-700 dark:text-white/90 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors ${
+                      isActive(link.url) ? 'bg-gray-100 dark:bg-[#ff7b25]/10 text-gray-900 dark:text-white' : ''
                     }`}
                     onClick={toggleMenu}
                   >
@@ -247,7 +255,7 @@ const Navbar = () => {
                 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center w-full px-3 py-2 text-base font-medium text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-md transition-colors"
+                  className="flex items-center w-full px-3 py-2 text-base font-medium text-red-600 dark:text-[#ff6b6b] hover:bg-red-50 dark:hover:bg-[#ff6b6b]/10 rounded-md transition-colors"
                   disabled={loading}
                 >
                   <FaSignOutAlt className="mr-2" />
@@ -258,8 +266,8 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className={`block px-3 py-2 text-base font-medium text-white/90 hover:text-white hover:bg-white/5 rounded-md transition-colors ${
-                    isActive('/login') ? 'bg-[#ff7b25]/10 text-white' : ''
+                  className={`block px-3 py-2 text-base font-medium text-gray-700 dark:text-white/90 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 rounded-md transition-colors ${
+                    isActive('/login') ? 'bg-gray-100 dark:bg-[#ff7b25]/10 text-gray-900 dark:text-white' : ''
                   }`}
                   onClick={toggleMenu}
                 >
@@ -283,7 +291,6 @@ const Navbar = () => {
   );
 };
 
- 
-
-
 export default Navbar;
+
+ 

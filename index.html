@@ -1,10 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DropHeaven</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Flash-preventing theme initialization (must be inline) -->
+    <!-- <script>
+      // On page load, add dark class based on user preference or localStorage
+      (function() {
+        try {
+          // Check for saved theme preference
+          var theme = localStorage.getItem('theme');
+          var systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          
+          // Apply dark mode if explicitly set or if system prefers dark and no setting is saved
+          if (theme === 'dark' || (!theme && systemPrefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          
+          // For debugging - create a global variable to track initialization
+          window.__themeInitializedAt = new Date().toISOString();
+        } catch (e) {
+          // Fallback to default light theme
+          document.documentElement.classList.remove('dark');
+          console.error('Error initializing theme:', e);
+        }
+      })();
+    </script> -->
   </head>
   <body>
     <div id="root"></div>

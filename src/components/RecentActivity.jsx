@@ -136,7 +136,7 @@ function RecentActivity({ activity }) {
         <p className="text-sm mt-1">
           <span className="text-gray-500 dark:text-gray-400">Lead: </span>
           <Link 
-            to={`/leads/${leadInfo?._id}`} 
+            to={`/leads/detail/${leadInfo?._id}`} 
             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center"
           >
             {leadInfo?.name || "Unknown Lead"}

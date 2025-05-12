@@ -15,27 +15,42 @@ import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { LeadSkeleton } from "../components";
 
-const LeadComponent = () => {  const [loading, setLoading] = useState(true);
+const LeadComponent = () => {
+  const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
-  const [todayFollowups, setTodayFollowups] = useState({ count: 0, followUps: [] });
+  const [todayFollowups, setTodayFollowups] = useState({
+    count: 0,
+    followUps: [],
+  });
   const [dueFollowups, setDueFollowups] = useState({ count: 0, followUps: [] });
-  const [upcomingFollowups, setUpcomingFollowups] = useState({ count: 0, data: [] });
+  const [upcomingFollowups, setUpcomingFollowups] = useState({
+    count: 0,
+    data: [],
+  });
   const [activeTab, setActiveTab] = useState("today-followups");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddLead, setShowAddLead] = useState(false);
+  const [triggerFetch, setTriggerFetch] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm();
 
   // Fetch all data on mount
   useEffect(() => {
-    const fetchData = async () => {      try {
+    const fetchData = async () => {
+      try {
         setLoading(true);
-        const [leadResponse, todayResponse, overdueResponse, upcomingResponse] = await Promise.all([
-          leadService.getUserLeads(),
-          followUpService.getTodayFollowUps(),
-          followUpService.getOverdueFollowUps(),
-          followUpService.getUpcomingFollowUps(),
-        ]);
+        const [leadResponse, todayResponse, overdueResponse, upcomingResponse] =
+          await Promise.all([
+            leadService.getUserLeads(),
+            followUpService.getTodayFollowUps(),
+            followUpService.getOverdueFollowUps(),
+            followUpService.getUpcomingFollowUps(),
+          ]);
 
         if (leadResponse.statusCode === 200) {
           setLeads(leadResponse.data);
@@ -54,10 +69,15 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
         toast.error("Failed to load data");
       } finally {
         setLoading(false);
+        setTriggerFetch(false);
       }
     };
     fetchData();
-  }, []);
+  }, [triggerFetch]);
+
+  const handleChildSuccess = () => {
+    setTriggerFetch(true);
+  };
 
   // Handle adding a new lead
   const handleAddLead = async (data) => {
@@ -127,7 +147,6 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
                 aria-label="Search leads"
               />
             </div>
-
             <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
                 activeTab === "today-followups"
@@ -140,7 +159,8 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
                 {todayFollowups?.count || 0}
               </span>
-            </button>            <button
+            </button>{" "}
+            <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
                 activeTab === "overdue-followups"
                   ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
@@ -231,7 +251,9 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
         <main className="flex-1 p-2 md:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-              <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                {" "}
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {activeTab === "today-followups" && "Today's Follow-ups"}
                   {activeTab === "overdue-followups" && "Overdue Follow-ups"}
                   {activeTab === "upcoming-followups" && "Upcoming Follow-ups"}
@@ -250,30 +272,21 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
                     aria-label="View analytics"
                   >
                     <FaChartBar />
-                  </button>                </div>
+                  </button>{" "}
+                </div>
               </div>
 
-              <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+              <div
+                className="overflow-y-auto"
+                style={{ maxHeight: "calc(100vh - 200px)" }}
+              >
                 {activeTab === "today-followups" ? (
                   todayFollowups.count !== 0 ? (
                     todayFollowups.followUps.map((followUp) => (
                       <UpcommingFollowups
-                        activeTab={activeTab}
                         key={followUp._id}
                         followUp={followUp}
-                        onUpdate={(updatedFollowUp) => {
-                          if (updatedFollowUp) {
-                            setTodayFollowups(prev => ({
-                              ...prev,
-                              followUps: prev.followUps.map(fu => 
-                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
-                              )
-                            }));
-                          } else {
-                            // Refresh data if onUpdate is called with null (complete refresh signal)
-                            fetchData();
-                          }
-                        }}
+                        onSuccess={handleChildSuccess}
                       />
                     ))
                   ) : (
@@ -285,22 +298,9 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
                   dueFollowups.count !== 0 ? (
                     dueFollowups.followUps.map((followUp) => (
                       <UpcommingFollowups
-                        activeTab={activeTab}
                         key={followUp._id}
                         followUp={followUp}
-                        onUpdate={(updatedFollowUp) => {
-                          if (updatedFollowUp) {
-                            setDueFollowups(prev => ({
-                              ...prev,
-                              followUps: prev.followUps.map(fu => 
-                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
-                              )
-                            }));
-                          } else {
-                            // Refresh data if onUpdate is called with null
-                            fetchData();
-                          }
-                        }}
+                        onSuccess={handleChildSuccess}
                       />
                     ))
                   ) : (
@@ -312,22 +312,9 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
                   upcomingFollowups.count !== 0 ? (
                     upcomingFollowups.data.map((followUp) => (
                       <UpcommingFollowups
-                        activeTab={activeTab}
                         key={followUp._id}
                         followUp={followUp}
-                        onUpdate={(updatedFollowUp) => {
-                          if (updatedFollowUp) {
-                            setUpcomingFollowups(prev => ({
-                              ...prev,
-                              data: prev.data.map(fu => 
-                                fu._id === updatedFollowUp._id ? updatedFollowUp : fu
-                              )
-                            }));
-                          } else {
-                            // Refresh data if onUpdate is called with null
-                            fetchData();
-                          }
-                        }}
+                        onSuccess={handleChildSuccess}
                       />
                     ))
                   ) : (
@@ -340,11 +327,18 @@ const LeadComponent = () => {  const [loading, setLoading] = useState(true);
                     No leads found. Create a new lead to get started.
                   </div>
                 ) : activeTab === "new" ? (
-                  filteredLeads
-                    .filter((lead) => lead.status === "new")
+                   filteredLeads.filter((lead) => lead.status === "new").length !== 0 ? (
+                    filteredLeads.filter((lead) => lead.status === "new")
                     .map((lead) => <LeadCard key={lead._id} lead={lead} />)
+                  ) : (
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
+                      No new leads found
+                    </div>
+                  )
                 ) : (
-                  filteredLeads.map((lead) => <LeadCard key={lead._id} lead={lead} />)
+                  filteredLeads.map((lead) => (
+                    <LeadCard key={lead._id} lead={lead} />
+                  ))
                 )}
               </div>
             </div>

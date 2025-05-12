@@ -1,25 +1,22 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import spinner from "/spinner.svg";
 import { useDispatch, useSelector } from "react-redux";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
 import Footer from "./components/Footer";
 import authService from "./services/authService";
 import { login, logout } from "./redux/features/authSlice";
 import Loading from "./components/Loading";
-import { useThemeDetector } from "./hooks/useThemeDetector";
 
 function App() {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   const userStatus = useSelector((state) => state.auth.status);
   const userData = useSelector((state) => state.auth.userData);
-  
-  // Apply theme detection
-  useThemeDetector();
+  const theme = localStorage.getItem("theme") || "light"; // Default to light theme if not set
+  // Use theme context for theme state
+
 
   // Initialize auth state on app load
   useEffect(() => {
@@ -37,12 +34,14 @@ function App() {
               } else {
                 // Clear invalid session data
                 localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
                 localStorage.removeItem("role");
                 dispatch(logout());
               }
             } catch (error) {
               console.error("Auth initialization error:", error);
               localStorage.removeItem("accessToken");
+              localStorage.removeItem("refreshToken");
               localStorage.removeItem("role");
               dispatch(logout());
             }
@@ -90,11 +89,22 @@ function App() {
     return <Loading />;
   }
 
+
   return (
-    <div className="min-h-screen bg-slate-700 box-border text-white">
+    <div className={theme === 'dark' ? 'dark' : 'light'}>
       <ScrollToTop />
       <Navbar />
-      <Toaster position="right-bottom" reverseOrder={false} />
+      <Toaster 
+        position="right-bottom" 
+        reverseOrder={false}
+        toastOptions={{
+          className: theme ? 'dark:bg-gray-800 dark:text-white' : '',
+          style: {
+            background: theme ? '#1f2937' : '#fff',
+            color: theme ? '#fff' : '#111827',
+          }
+        }}
+      />
       <Outlet />
       <Footer />
     </div>
@@ -102,3 +112,4 @@ function App() {
 }
 
 export default App;
+

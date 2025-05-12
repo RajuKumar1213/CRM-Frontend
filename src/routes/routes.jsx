@@ -11,7 +11,9 @@ const EmployeeDashboard = lazy(() => import("../pages/EmployeeDashboard"));
 const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
 const LeadComponent = lazy(() => import("../pages/LeadComponent"));
 const LeadDetails = lazy(() => import("../pages/LeadDetails"));
-
+const ThemeTestPage = lazy(() => import("../pages/ThemeTestPage"));
+const Profile = lazy(() => import("../components/Profile"));
+const Settings = lazy(() => import("../components/Settings"));
 
 // Suspense Wrapper with proper PageLoader
 const withSuspense = (Component) => (
@@ -82,6 +84,26 @@ export const router = createBrowserRouter([
         element: withSuspense(
           <AuthLayout authentication>
             <LeadDetails />
+          </AuthLayout>
+        )
+      },
+      {
+        path: "/theme-test",
+        element: withSuspense(<ThemeTestPage />)
+      },
+      {
+        path: "/profile",
+        element: withSuspense(
+          <AuthLayout authentication>
+            <Profile />
+          </AuthLayout>
+        )
+      },
+      {
+        path: "/settings",
+        element: withSuspense(
+          <AuthLayout authentication>
+            <Settings />
           </AuthLayout>
         )
       }
