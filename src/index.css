@@ -40,18 +40,29 @@
 
 /* Base styles with transitions */
 * {
-  transition-property: color, background-color, border-color;
-  transition-duration: 300ms;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 200ms;
   transition-timing-function: ease;
 }
 
 /* Light mode (default) */
-body {
+html {
   background-color: #ffffff;
   color: #111827;
 }
 
+body {
+  background-color: #ffffff;
+  color: #111827;
+  min-height: 100vh;
+}
+
 /* Dark mode */
+.dark html {
+  background-color: #111827;
+  color: #ffffff;
+}
+
 .dark body {
   background-color: #111827;
   color: #ffffff;
@@ -63,6 +74,13 @@ body {
   color: #ffffff !important;
 }
 
+/* Ensure transitions work properly */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 200ms ease, color 200ms ease;
+}
 
 /* Better focus styles for accessibility */
 :focus-visible {

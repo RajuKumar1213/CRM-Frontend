@@ -26,17 +26,27 @@ export class LeadService {
       throw error.response?.data || "Failed to fetch lead.";
     }
   }
-
-  async getUserLeads() {
+  async getUserLeads(params = {}) {
     try {
-      const response = await api.get(`/lead/get-user-leads`);
+      // Build query string from provided parameters
+      const queryParams = new URLSearchParams();
+      
+      if (params.search) queryParams.append('search', params.search);
+      if (params.status && params.status !== 'All Statuses') queryParams.append('status', params.status);
+      if (params.source && params.source !== 'All Sources') queryParams.append('source', params.source);
+      if (params.priority && params.priority !== 'All Priorities') queryParams.append('priority', params.priority);
+      
+      const queryString = queryParams.toString();
+      const url = `/lead/get-user-leads${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error(
-        "ERROR :: fetching lead ::",
+        "ERROR :: fetching leads ::",
         error.response?.data || error.message
       );
-      throw error.response?.data || "Failed to fetch lead.";
+      throw error.response?.data || "Failed to fetch leads.";
     }
   }
 
@@ -90,25 +100,25 @@ export class LeadService {
       );
       throw error.response?.data || "Failed to process WhatsApp webhook.";
     }
-  }  async getActivities(limit = 10) {
+  }  
+
+  async getActivities(page = 1, limit = 10) {
     try {
-      const response = await api.get(`/lead/activities?limit=${limit}`);
-      console.log("Raw activity response:", response.data);
+      const response = await api.get(`/lead/activities?page=${page}&limit=${limit}`);
       return response.data;
     } catch (error) {
-      console.error(
-        "ERROR :: fetching activities ::",
-        error.response?.data || error.message
-      );
-      // Return a fallback response with empty activities
-      return {
-        statusCode: 200,
-        data: {
-          count: 0,
-          activities: []
-        },
-        message: "Failed to fetch activities" 
-      };
+      console.error("ERROR :: fetching activities ::", error.response?.data || error.message);
+      throw error.response?.data || "Failed to fetch activities.";
+    }
+  }
+
+  async getFollowups(page = 1, limit = 10) {
+    try {
+      const response = await api.get(`/lead/followups?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error("ERROR :: fetching followups ::", error.response?.data || error.message);
+      throw error.response?.data || "Failed to fetch followups.";
     }
   }
 }

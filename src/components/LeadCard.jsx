@@ -28,12 +28,16 @@ function LeadCard({ lead, onClick }) {
     formState: { errors },
     reset,
   } = useForm();
-
   const statusColors = {
-    new: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
-    'in-progress': "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+    new: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-200",
+    contacted: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+    qualified: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200",
+    negotiating: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200",
+    'in-progress': "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200",
+    'proposal-sent': "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
     won: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
     lost: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
+    'on-hold': "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200",
   };
 
   const formatDate = (date) => {
@@ -343,12 +347,15 @@ function LeadCard({ lead, onClick }) {
                   {...register("status", { required: "Status is required" })}
                   className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="Follow-up status"
-                  defaultValue="new"
+                  defaultValue="pending"
                 >
-                  <option value="new">New</option>
+                  <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
-                  <option value="won">Won</option>
-                  <option value="lost">Lost</option>
+                  <option value="on-hold">On Hold</option>
+                  <option value="completed">Completed</option>
+                  <option value="rescheduled">Rescheduled</option>
+                  <option value="missed">Missed</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
                 {errors.status && (
                   <p className="text-xs text-red-600 dark:text-red-400">

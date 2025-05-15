@@ -8,15 +8,16 @@ import Footer from "./components/Footer";
 import authService from "./services/authService";
 import { login, logout } from "./redux/features/authSlice";
 import Loading from "./components/Loading";
+import { ThemeProvider } from './context/ThemeContext';
+import ChatBot from './components/ChatBot';
+import { initializeSocket, disconnectSocket } from './utils/socket';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   const userStatus = useSelector((state) => state.auth.status);
   const userData = useSelector((state) => state.auth.userData);
-  const theme = localStorage.getItem("theme") || "light"; // Default to light theme if not set
-  // Use theme context for theme state
-
+  const { status } = useSelector((state) => state.auth);
 
   // Initialize auth state on app load
   useEffect(() => {
@@ -85,29 +86,40 @@ function App() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [dispatch]);
 
+  useEffect(() => {
+    if (status) {
+      initializeSocket();
+    } else {
+      disconnectSocket();
+    }
+    return () => {
+      disconnectSocket();
+    };
+  }, [status]);
+
   if (loading) {
     return <Loading />;
   }
 
-
   return (
-    <div className={theme === 'dark' ? 'dark' : 'light'}>
-      <ScrollToTop />
-      <Navbar />
-      <Toaster 
-        position="right-bottom" 
-        reverseOrder={false}
-        toastOptions={{
-          className: theme ? 'dark:bg-gray-800 dark:text-white' : '',
-          style: {
-            background: theme ? '#1f2937' : '#fff',
-            color: theme ? '#fff' : '#111827',
-          }
-        }}
-      />
-      <Outlet />
-      <Footer />
-    </div>
+    <ThemeProvider>
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <ScrollToTop />
+        <Navbar />
+        <main className="min-h-[80vh] bg-gray-50 dark:bg-gray-900">
+          {loading ? <Loading /> : <Outlet />}
+        </main>
+        <Footer />
+        <ChatBot />
+        <Toaster 
+          position="top-right" 
+          toastOptions={{ 
+            duration: 4000,
+            className: '!bg-white dark:!bg-gray-800 !text-gray-900 dark:!text-gray-100'
+          }} 
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 

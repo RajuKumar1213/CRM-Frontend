@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { logout } from '../redux/features/authSlice';
 import Loading from './Loading';
 import ThemeToggle from './ThemeToggle';
+import NotificationBadge from './NotificationBadge';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -143,60 +144,63 @@ const Navbar = () => {
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-4">
-            {/* Theme Toggle */}
-            <ThemeToggle />
-            
-            {isAuthenticated ? (
-              <div className="relative">
-                <button
-                  onClick={toggleProfile}
-                  className="flex items-center space-x-2 group cursor-pointer"
-                >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 dark:bg-[#ff7b25]/20 text-orange-500 dark:text-[#ff7b25] border border-orange-200 dark:border-[#ff7b25]/30">
-                    {userData?.name?.charAt(0).toUpperCase() || <FaUserCircle size={18} />}
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                    {userData?.name || "User"}
-                  </span>
-                  <FaChevronDown 
-                    size={12} 
-                    className={`text-gray-500 dark:text-white/60 transition-transform ${isProfileOpen ? 'transform rotate-180' : ''}`} 
-                  />
-                </button>
-                
-                {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#2a2a3a] rounded-md profile-card overflow-hidden z-20 fade-in border border-gray-100 dark:border-[#ffffff10]">
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-[#ffffff10]">
-                      <p className="text-sm text-gray-800 dark:text-white font-medium">{userData?.name || "User"}</p>
-                      <p className="text-xs text-gray-500 dark:text-white/60 truncate">{userData?.email || "user@example.com"}</p>
+          <div className="flex items-center gap-3">
+            {isAuthenticated && (
+              <>
+                <ThemeToggle />
+                <NotificationBadge />
+                <div className="relative">
+                  <button
+                    onClick={toggleProfile}
+                    className="flex items-center space-x-2 group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 dark:bg-[#ff7b25]/20 text-orange-500 dark:text-[#ff7b25] border border-orange-200 dark:border-[#ff7b25]/30">
+                      {userData?.name?.charAt(0).toUpperCase() || <FaUserCircle size={18} />}
                     </div>
-                    <div className="py-1">
-                      {profileLinks.map((link) => (
-                        <Link
-                          key={link.name}
-                          to={link.url}
-                          className="block px-4 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-[#ff7b25]/10 hover:text-gray-900 dark:hover:text-white transition-colors"
-                          onClick={toggleProfile}
+                    <span className="text-sm font-medium text-gray-700 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                      {userData?.name || "User"}
+                    </span>
+                    <FaChevronDown 
+                      size={12} 
+                      className={`text-gray-500 dark:text-white/60 transition-transform ${isProfileOpen ? 'transform rotate-180' : ''}`} 
+                    />
+                  </button>
+                  
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#2a2a3a] rounded-md profile-card overflow-hidden z-20 fade-in border border-gray-100 dark:border-[#ffffff10]">
+                      <div className="px-4 py-3 border-b border-gray-100 dark:border-[#ffffff10]">
+                        <p className="text-sm text-gray-800 dark:text-white font-medium">{userData?.name || "User"}</p>
+                        <p className="text-xs text-gray-500 dark:text-white/60 truncate">{userData?.email || "user@example.com"}</p>
+                      </div>
+                      <div className="py-1">
+                        {profileLinks.map((link) => (
+                          <Link
+                            key={link.name}
+                            to={link.url}
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-[#ff7b25]/10 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            onClick={toggleProfile}
+                          >
+                            {link.name}
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="py-1 border-t border-gray-100 dark:border-[#ffffff10]">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-[#ff6b6b] hover:bg-red-50 dark:hover:bg-[#ff6b6b]/10 transition-colors cursor-pointer"
+                          disabled={loading}
                         >
-                          {link.name}
-                        </Link>
-                      ))}
+                          <FaSignOutAlt className="mr-2" />
+                          {loading ? 'Logging out...' : 'Logout'}
+                        </button>
+                      </div>
                     </div>
-                    <div className="py-1 border-t border-gray-100 dark:border-[#ffffff10]">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-[#ff6b6b] hover:bg-red-50 dark:hover:bg-[#ff6b6b]/10 transition-colors cursor-pointer"
-                        disabled={loading}
-                      >
-                        <FaSignOutAlt className="mr-2" />
-                        {loading ? 'Logging out...' : 'Logout'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
+                  )}
+                </div>
+              </>
+            )}
+
+            {!isAuthenticated && (
               <div className="hidden md:flex items-center space-x-3">
                 <Link
                   to="/login"
@@ -293,4 +297,3 @@ const Navbar = () => {
 
 export default Navbar;
 
- 

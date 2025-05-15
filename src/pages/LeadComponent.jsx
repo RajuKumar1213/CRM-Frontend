@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   FaUser,
   FaSearch,
@@ -27,8 +27,11 @@ const LeadComponent = () => {
     count: 0,
     data: [],
   });
-  const [activeTab, setActiveTab] = useState("today-followups");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("today-followups");  const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [sourceFilter, setSourceFilter] = useState("All Sources");
+  const [priorityFilter, setPriorityFilter] = useState("All Priorities");
   const [showAddLead, setShowAddLead] = useState(false);
   const [triggerFetch, setTriggerFetch] = useState(false);
 
@@ -37,24 +40,40 @@ const LeadComponent = () => {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm();
-
-  // Fetch all data on mount
+  } = useForm();  // Function to fetch leads with current filters
+  const fetchLeads = useCallback(async () => {
+    try {
+      const params = {
+        search: activeSearchQuery,
+        status: statusFilter,
+        source: sourceFilter,
+        priority: priorityFilter
+      };
+      
+      const leadResponse = await leadService.getUserLeads(params);
+      if (leadResponse.statusCode === 200) {
+        setLeads(leadResponse.data);
+      }
+    } catch (error) {
+      console.error("Error fetching leads:", error);
+      toast.error("Failed to load leads");
+    }
+  }, [activeSearchQuery, statusFilter, sourceFilter, priorityFilter]);
+    // Fetch all data on mount or when filters change
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [leadResponse, todayResponse, overdueResponse, upcomingResponse] =
+        const [todayResponse, overdueResponse, upcomingResponse] =
           await Promise.all([
-            leadService.getUserLeads(),
             followUpService.getTodayFollowUps(),
             followUpService.getOverdueFollowUps(),
             followUpService.getUpcomingFollowUps(),
           ]);
+        
+        // Fetch leads with current filters
+        await fetchLeads();
 
-        if (leadResponse.statusCode === 200) {
-          setLeads(leadResponse.data);
-        }
         if (todayResponse.statusCode === 200) {
           setTodayFollowups(todayResponse.data);
         }
@@ -73,8 +92,14 @@ const LeadComponent = () => {
       }
     };
     fetchData();
-  }, [triggerFetch]);
-
+  }, [triggerFetch, fetchLeads]);
+  
+  // Run fetchLeads whenever activeSearchQuery changes
+  useEffect(() => {
+    if (activeSearchQuery !== "") {
+      fetchLeads();
+    }
+  }, [activeSearchQuery, fetchLeads]);
   const handleChildSuccess = () => {
     setTriggerFetch(true);
   };
@@ -88,7 +113,7 @@ const LeadComponent = () => {
         priority: "medium",
       });
       if (response.statusCode === 201) {
-        setLeads([...leads, response.data]);
+        setTriggerFetch(true); // Fetch updated leads after adding a new one
         setShowAddLead(false);
         reset();
         toast.success("Lead added successfully!");
@@ -100,13 +125,11 @@ const LeadComponent = () => {
     }
   };
 
-  // Filter leads by search term
-  const filteredLeads = leads.filter(
-    (lead) =>
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Since filtering is now done on the server side, we don't need client-side filtering
+  // Just determine which leads to show based on active tab
+  const displayedLeads = activeTab === "new" 
+    ? leads.filter(lead => lead.status === "new")
+    : leads;
 
   if (loading) return <LeadSkeleton />;
 
@@ -134,18 +157,33 @@ const LeadComponent = () => {
         {/* Sidebar */}
         <aside className="w-full md:w-64 p-4 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <div className="mb-6">
-            <div className="relative bg-white dark:bg-gray-700 rounded-md shadow-sm mb-4">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="relative bg-white dark:bg-gray-700 rounded-md shadow-sm mb-4 flex w-full overflow-hidden">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                 <FaSearch className="text-gray-500 dark:text-gray-400" />
-              </div>
-              <input
+              </div>              <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="flex-grow block pl-10 pr-3 py-2 rounded-l-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 min-w-0"
                 placeholder="Search leads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setActiveSearchQuery(searchTerm);
+                    setTriggerFetch(true);
+                  }
+                }}
                 aria-label="Search leads"
               />
+              <button
+                className="px-3 py-2 rounded-r-md bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+                onClick={() => {
+                  setActiveSearchQuery(searchTerm);
+                  setTriggerFetch(true);
+                }}
+                aria-label="Search"
+              >
+                <FaSearch />
+              </button>
             </div>
             <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
@@ -185,8 +223,7 @@ const LeadComponent = () => {
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
                 {upcomingFollowups?.count || 0}
               </span>
-            </button>
-            <button
+            </button>            <button
               className={`w-full flex items-center justify-between px-4 py-2 rounded-md mb-2 ${
                 activeTab === "new"
                   ? "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200"
@@ -196,7 +233,7 @@ const LeadComponent = () => {
             >
               <span>New Leads</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
-                {filteredLeads.filter((l) => l.status === "new").length}
+                {leads.filter((l) => l.status === "new").length}
               </span>
             </button>
             <button
@@ -209,12 +246,10 @@ const LeadComponent = () => {
             >
               <span>All Leads</span>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700">
-                {filteredLeads.length}
+                {leads.length}
               </span>
             </button>
-          </div>
-
-          <div>
+          </div>          <div>
             <h3 className="font-medium mb-2 flex items-center text-gray-700 dark:text-gray-300">
               <FaFilter className="mr-2" />
               Filters
@@ -222,28 +257,59 @@ const LeadComponent = () => {
             <select
               className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setTriggerFetch(true);
+              }}
+            >              <option>All Statuses</option>
+              <option>new</option>
+              <option>contacted</option>
+              <option>qualified</option>
+              <option>negotiating</option>
+              <option>in-progress</option>
+              <option>proposal-sent</option>
+              <option>won</option>
+              <option>lost</option>
+              <option>on-hold</option>
+            </select>            <select
+              className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              aria-label="Filter by source"
+              value={sourceFilter}
+              onChange={(e) => {
+                setSourceFilter(e.target.value);
+                setTriggerFetch(true);
+              }}
             >
-              <option>All Statuses</option>
-              <option>New</option>
-              <option>Contacted</option>
-              <option>Qualified</option>
-              <option>Proposal</option>
-              <option>Negotiation</option>
-              <option>Closed-Won</option>
-              <option>Closed-Lost</option>
+              <option>All Sources</option>
+              <option>whatsapp</option>
             </select>
             <select
               className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              aria-label="Filter by source"
+              aria-label="Filter by priority"
+              value={priorityFilter}
+              onChange={(e) => {
+                setPriorityFilter(e.target.value);
+                setTriggerFetch(true);
+              }}
             >
-              <option>All Sources</option>
-              <option>Website</option>
-              <option>Referral</option>
-              <option>Trade Show</option>
-              <option>Social Media</option>
-              <option>Email Campaign</option>
-              <option>WhatsApp</option>
-            </select>
+              <option>All Priorities</option>
+              <option>high</option>
+              <option>medium</option>
+              <option>low</option>
+            </select>            <button
+              className="w-full mt-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium py-2 px-4 rounded-md transition-colors duration-200"
+              onClick={() => {
+                setSearchTerm('');
+                setActiveSearchQuery('');
+                setStatusFilter('All Statuses');
+                setSourceFilter('All Sources');
+                setPriorityFilter('All Priorities');
+                setTriggerFetch(true);
+              }}
+            >
+              Reset Filters
+            </button>
           </div>
         </aside>
 
@@ -307,8 +373,7 @@ const LeadComponent = () => {
                     <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
                       No overdue follow-ups
                     </div>
-                  )
-                ) : activeTab === "upcoming-followups" ? (
+                  )                ) : activeTab === "upcoming-followups" ? (
                   upcomingFollowups.count !== 0 ? (
                     upcomingFollowups.data.map((followUp) => (
                       <UpcommingFollowups
@@ -322,21 +387,12 @@ const LeadComponent = () => {
                       No upcoming follow-ups
                     </div>
                   )
-                ) : filteredLeads.length === 0 ? (
+                ) : displayedLeads.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
-                    No leads found. Create a new lead to get started.
+                    No leads found. {activeTab === "new" ? "Create a new lead to get started." : "Try adjusting your filters."}
                   </div>
-                ) : activeTab === "new" ? (
-                   filteredLeads.filter((lead) => lead.status === "new").length !== 0 ? (
-                    filteredLeads.filter((lead) => lead.status === "new")
-                    .map((lead) => <LeadCard key={lead._id} lead={lead} />)
-                  ) : (
-                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-xl font-light">
-                      No new leads found
-                    </div>
-                  )
                 ) : (
-                  filteredLeads.map((lead) => (
+                  displayedLeads.map((lead) => (
                     <LeadCard key={lead._id} lead={lead} />
                   ))
                 )}
@@ -415,18 +471,12 @@ const LeadComponent = () => {
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
                   Source (Optional)
-                </label>
-                <select
+                </label>                <select
                   id="source"
                   {...register("source")}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">Select source</option>
-                  <option value="website">Website</option>
-                  <option value="referral">Referral</option>
-                  <option value="trade show">Trade Show</option>
-                  <option value="social media">Social Media</option>
-                  <option value="email campaign">Email Campaign</option>
                   <option value="whatsapp">WhatsApp</option>
                 </select>
               </div>

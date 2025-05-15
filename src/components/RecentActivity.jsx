@@ -10,8 +10,11 @@ import {
   FaExternalLinkAlt 
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { format } from 'timeago.js';
 
 function RecentActivity({ activity }) {
+
+
   // Handle both data structures (with userInfo/leadInfo or user/lead directly)
   const userInfo = activity?.userInfo || activity?.user;
   const leadInfo = activity?.leadInfo || activity?.lead;
@@ -126,11 +129,18 @@ function RecentActivity({ activity }) {
               </span>
             )}
           </p>
-          {activity?.timeAgo && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {activity?.timeAgo}
-            </span>
-          )}
+          <div className="flex flex-col items-end">
+            {activity?.createdAt && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {format(activity.createdAt)}
+              </span>
+            )}
+            {activity?.formattedDate && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {activity.formattedDate}
+              </span>
+            )}
+          </div>
         </div>
         
         <p className="text-sm mt-1">
@@ -159,12 +169,12 @@ function RecentActivity({ activity }) {
           </p>
         )}
       </div>
-      <button
+      {/* <button
         className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
         aria-label="Add comment"
       >
         <FaRegCommentDots size={16} />
-      </button>
+      </button> */}
     </div>
   );
 }

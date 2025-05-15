@@ -18,14 +18,21 @@ import {
   FaCheck,
   FaHourglass,
   FaUserClock,
-  FaEnvelope
+  FaEnvelope,
+  FaChartLine,
+  FaRegBell,
+  FaHistory
 } from 'react-icons/fa';
 import { FiUsers, FiSettings, FiLogOut, FiTrendingUp, FiBarChart2, FiPieChart } from 'react-icons/fi';
 import { getDashboardStats, getUserPerformance, getCompanyHealth } from '../services/dashboardService';
 import { useSelector } from 'react-redux';
 import Loading from '../components/Loading';
 import AdminDashboardSkeleton from '../components/AdminDashboardSkeleton';
+import Settings from '../components/Settings';
 import toast from 'react-hot-toast';
+import RecentActivity from '../components/RecentActivity';
+import leadService from '../services/leadService';
+import FollowupActivity from '../components/FollowupActivity';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -33,8 +40,56 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [userPerformance, setUserPerformance] = useState(null);
-  const [companyHealth, setCompanyHealth] = useState(null);  const [timePeriod, setTimePeriod] = useState('month'); // Default time period
+  const [companyHealth, setCompanyHealth] = useState(null);
+  const [timePeriod, setTimePeriod] = useState('month');
+  const [showAllActivities, setShowAllActivities] = useState(false);
+  const [activities, setActivities] = useState({ items: [], pagination: null });
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
+  const [followups, setFollowups] = useState({ items: [], pagination: null });
+  const [followupsPage, setFollowupsPage] = useState(1);
+  const [loadingMoreFollowups, setLoadingMoreFollowups] = useState(false);
+  const [showAllFollowups, setShowAllFollowups] = useState(false);
   const userData = useSelector((state) => state.auth.userData);
+
+  // Fetch activities
+  const fetchActivities = async (page = 1, replace = true) => {
+    try {
+      setLoadingMoreActivities(true);
+      const result = await leadService.getActivities(page);
+      console.log(result)
+      if (result.statusCode === 200) {
+        setActivities(prev => ({
+          items: replace ? result.data.activities : [...prev.items, ...result.data.activities],
+          pagination: result.data.pagination
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('Failed to load activities');
+    } finally {
+      setLoadingMoreActivities(false);
+    }
+  };
+
+  // Fetch followups
+  const fetchFollowups = async (page = 1, replace = true) => {
+    try {
+      setLoadingMoreFollowups(true);
+      const result = await leadService.getFollowups(page);
+      if (result.statusCode === 200) {
+        setFollowups(prev => ({
+          items: replace ? result.data.followUps : [...prev.items, ...result.data.followUps],
+          pagination: result.data.pagination
+        }));
+      }
+    } catch (error) {
+      toast.error('Failed to load follow-ups');
+    } finally {
+      setLoadingMoreFollowups(false);
+    }
+  };
+
   // Load dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -49,6 +104,11 @@ const AdminDashboard = () => {
         setDashboardData(statsData);
         setUserPerformance(performanceData);
         setCompanyHealth(healthData);
+        
+        // Fetch initial activities
+        await fetchActivities(1, true);
+        await fetchFollowups(1, true);
+        
         setError(null);
       } catch (err) {
         setError('Failed to load dashboard data. Please try again later.');
@@ -272,12 +332,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                           <div 
-                            className={`h-2.5 rounded-full ${
-                              status === 'new' ? 'bg-blue-500' : 
-                              status === 'contacted' ? 'bg-yellow-500' : 
-                              status === 'qualified' ? 'bg-purple-500' : 
-                              status === 'negotiation' ? 'bg-orange-500' : 
-                              status === 'closed-won' ? 'bg-green-500' : 
+                            className={`h-2.5 rounded-full ${                              status === 'new' ? 'bg-blue-500' : 
+                              status === 'in-progress' ? 'bg-yellow-500' : 
+                              status === 'won' ? 'bg-green-500' : 
                               'bg-red-500'
                             }`} 
                             style={{ width: `${Math.round((count / dashboardData.leads.total) * 100)}%` }}
@@ -317,96 +374,227 @@ const AdminDashboard = () => {
               </div>
 
               {/* **Recent Activity and Follow-ups** */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">                {/* **Recent Activity** */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                {/* **Recent Activity** */}
                 <div className="p-6 rounded-xl bg-white dark:bg-gray-800 shadow-md">
-                  <h3 className="text-xl font-semibold mb-4">Recent Activity {timePeriod !== 'month' ? `(${timePeriod === 'today' ? 'Today' : timePeriod === 'week' ? 'This Week' : 'This Year'})` : ''}</h3>
-                  {dashboardData.activities.recent.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">No recent activities</p>
-                  ) : (
-                    <ul className="space-y-4">
-                      {dashboardData.activities.recent.map((activity) => (
-                        <li key={activity._id} className="flex items-start">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4 bg-gray-100 dark:bg-gray-700">
-                            {activity.type === 'call' ? (
-                              <FaPhoneAlt className="text-green-500" />
-                            ) : activity.type === 'email' ? (
-                              <FaEnvelope className="text-blue-500" />
-                            ) : activity.type === 'meeting' ? (
-                              <FaCalendarCheck className="text-purple-500" />
-                            ) : (
-                              <FaUserShield className="text-orange-500" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {activity.user?.name || 'System'}{' '}
-                              <span className="text-gray-500 dark:text-gray-400">
-                                {activity.type === 'call' ? 'made a call to ' : 
-                                 activity.type === 'email' ? 'sent an email to ' : 
-                                 activity.type === 'meeting' ? 'had a meeting with ' : 
-                                 'performed an action on '}
-                                {activity.lead?.name || 'a lead'}
-                              </span>
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{activity.timeAgo}</p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold">Recent Activity {timePeriod !== 'month' ? `(${timePeriod === 'today' ? 'Today' : timePeriod === 'week' ? 'This Week' : 'This Year'})` : ''}</h3>
+                    <button
+                      onClick={() => setShowAllActivities(true)}
+                      className="text-sm text-orange-500 hover:underline"
+                    >
+                      View All
+                    </button>
+                  </div>
+                  
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {loading ? (
+                      <Loading />
+                    ) : activities.items.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <FaHistory className="mx-auto text-gray-300 dark:text-gray-600 text-4xl mb-3" />
+                        <h3 className="text-gray-500 dark:text-gray-400 font-medium">No recent activities</h3>
+                        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+                          Recent activities will appear here
+                        </p>
+                      </div>
+                    ) : (
+                      activities.items.slice(0, 5).map((activity) => (
+                        <div
+                          key={activity._id}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <RecentActivity activity={activity} />
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 {/* **Follow-ups** */}
                 <div className="p-6 rounded-xl bg-white dark:bg-gray-800 shadow-md">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold">Follow-ups</h3>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 rounded-lg text-sm bg-orange-500 text-white">
-                        Upcoming
-                      </button>
-                      <button className="px-3 py-1 rounded-lg text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                        Overdue ({dashboardData.followUps.overdue.length})
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setShowAllFollowups(true)}
+                      className="text-sm text-orange-500 hover:underline"
+                    >
+                      View All
+                    </button>
                   </div>
-                  
-                  {dashboardData.followUps.upcoming.length === 0 && dashboardData.followUps.overdue.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">No follow-ups scheduled</p>
-                  ) : (
-                    <ul className="space-y-4">
-                      {[...dashboardData.followUps.overdue, ...dashboardData.followUps.upcoming].slice(0, 5).map((followUp) => (
-                        <li key={followUp._id} className="flex items-start">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${
-                            new Date(followUp.scheduled) < new Date() ? 'bg-red-100 dark:bg-red-900/20' : 'bg-green-100 dark:bg-green-900/20'
-                          }`}>
-                            {new Date(followUp.scheduled) < new Date() ? (
-                              <FaHourglassHalf className="text-red-500" />
-                            ) : (
-                              <FaCalendarCheck className="text-green-500" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between">
-                              <p className="font-medium">{followUp.lead?.name || 'Unknown Lead'}</p>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                new Date(followUp.scheduled) < new Date() ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                              }`}>
-                                {new Date(followUp.scheduled) < new Date() ? 'Overdue' : 'Upcoming'}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              Assigned to: {followUp.assignedTo?.name || 'Unassigned'}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {new Date(followUp.scheduled).toLocaleString()}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {loading ? (
+                      <Loading />
+                    ) : followups.items.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <FaHourglassHalf className="mx-auto text-gray-300 dark:text-gray-600 text-4xl mb-3" />
+                        <h3 className="text-gray-500 dark:text-gray-400 font-medium">No follow-ups scheduled</h3>
+                        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+                          Follow-ups will appear here
+                        </p>
+                      </div>
+                    ) : (
+                      followups.items.slice(0, 5).map((followup) => (
+                        <div
+                          key={followup._id}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <FollowupActivity followup={followup} />
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Modal for showing all activities */}
+              {showAllActivities && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        All Activities
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setShowAllActivities(false);
+                          setActivitiesPage(1);
+                          fetchActivities(1);
+                        }}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <div className="overflow-y-auto flex-grow divide-y divide-gray-200 dark:divide-gray-700" id="activity-modal-list">
+                      {activities.items.map((activity) => (
+                        <div
+                          key={activity._id}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <RecentActivity activity={activity} />
+                        </div>
+                      ))}
+                      {loadingMoreActivities && (
+                        <div className="p-4 flex justify-center">
+                          <Loading />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Showing {activities.items.length} of {activities.pagination?.totalActivities || 0} activities
+                      </div>
+                      <div className="flex gap-2">
+                        {activities.pagination?.hasMore && (
+                          <button
+                            onClick={async () => {
+                              setActivitiesPage(prev => prev + 1);
+                              await fetchActivities(activitiesPage + 1, false);
+                              // Scroll to the bottom after loading more
+                              setTimeout(() => {
+                                const list = document.getElementById('activity-modal-list');
+                                if (list) list.scrollTop = list.scrollHeight;
+                              }, 100);
+                            }}
+                            disabled={loadingMoreActivities}
+                            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                          >
+                            {loadingMoreActivities ? 'Loading...' : 'Load More'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowAllActivities(false);
+                            setActivitiesPage(1);
+                            fetchActivities(1);
+                          }}
+                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal for showing all followups */}
+              {showAllFollowups && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        All Follow-ups
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setShowAllFollowups(false);
+                          setFollowupsPage(1);
+                          fetchFollowups(1);
+                        }}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="overflow-y-auto flex-grow divide-y divide-gray-200 dark:divide-gray-700" id="followup-modal-list">
+                      {followups.items.map((followup) => (
+                        <div
+                          key={followup._id}
+                          className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        >
+                          <FollowupActivity followup={followup} />
+                        </div>
+                      ))}
+                      {loadingMoreFollowups && (
+                        <div className="p-4 flex justify-center">
+                          <Loading />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Showing {followups.items.length} of {followups.pagination?.total || 0} follow-ups
+                      </div>
+                      <div className="flex gap-2">
+                        {followups.pagination?.next && (
+                          <button
+                            onClick={async () => {
+                              setFollowupsPage(prev => prev + 1);
+                              await fetchFollowups(followupsPage + 1, false);
+                              setTimeout(() => {
+                                const list = document.getElementById('followup-modal-list');
+                                if (list) list.scrollTop = list.scrollHeight;
+                              }, 100);
+                            }}
+                            disabled={loadingMoreFollowups}
+                            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                          >
+                            {loadingMoreFollowups ? 'Loading...' : 'Load More'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowAllFollowups(false);
+                            setFollowupsPage(1);
+                            fetchFollowups(1);
+                          }}
+                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -664,12 +852,11 @@ const AdminDashboard = () => {
                     {dashboardData.leads.thisMonth} this month vs {dashboardData.leads.lastMonth} last month
                   </div>
                 </div>
-                
-                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 flex flex-col items-center">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 flex flex-col items-center">
                   <h4 className="text-blue-500 font-semibold mb-2">Conversion Analytics</h4>
                   <div className="text-3xl font-bold mb-1">
-                    {dashboardData.leads.byStatus['closed-won'] 
-                      ? Math.round((dashboardData.leads.byStatus['closed-won'] / dashboardData.leads.total) * 100) 
+                    {dashboardData.leads.byStatus['won'] 
+                      ? Math.round((dashboardData.leads.byStatus['won'] / dashboardData.leads.total) * 100) 
                       : 0}%
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -677,6 +864,16 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}          {activeTab === 'settings' && (
+            <div className="max-w-5xl mx-auto">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Company Settings</h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  Manage your company's configuration, contact information, and operational settings.
+                </p>
+              </div>
+              <Settings />
             </div>
           )}
           

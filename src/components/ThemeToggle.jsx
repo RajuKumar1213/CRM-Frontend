@@ -1,27 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { FaMoon, FaSun, FaDesktop } from 'react-icons/fa';
+import React from 'react';
+import { FaMoon, FaSun } from 'react-icons/fa';
+import { useThemeContext } from '../context/ThemeContext';
 
 const ThemeToggle = ({ className = '' }) => {
-  const getInitialTheme = () => {
-    const stored = localStorage.getItem('theme');
-    if (stored) return stored;
-    // Fallback to system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  };
-
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  const { theme, setTheme } = useThemeContext();
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   return (

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { FaPhone, FaCalendar, FaCheck, FaWhatsapp } from "react-icons/fa";
+import { FaPhone, FaCalendar, FaCheck, FaWhatsapp, FaArrowLeft } from "react-icons/fa";
 
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import followUpService from "../services/followupService";
 import whatsappService from "../services/whatsappService";
@@ -17,7 +17,6 @@ function UpcommingFollowups({ followUp, onSuccess }) {
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Log prop and state for debugging
 
   const {
     register,
@@ -69,7 +68,6 @@ function UpcommingFollowups({ followUp, onSuccess }) {
   //     setIsFormSubmitting(false);
   //   }
   // };
-
   const handleReschedule = async (data) => {
     setIsFormSubmitting(true);
     try {
@@ -78,10 +76,12 @@ function UpcommingFollowups({ followUp, onSuccess }) {
       const scheduledDate = new Date(
         `${data.date}T${timeValue}:00`
       ).toISOString();
+
+      // Update the follow-up with all data
       const response = await followUpService.updateFollowUp(followUp._id, {
-        followUpType: data.followUpType,
         scheduled: scheduledDate,
         notes: data.notes || "",
+        status: data.status || followUp.status, // Include status update
       });
 
       if (response.statusCode !== 200) {
@@ -144,8 +144,18 @@ function UpcommingFollowups({ followUp, onSuccess }) {
               : followUp?.status === "lost"
               ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
               : followUp?.status === "in-progress"
+              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200"
+              : followUp?.status === "negotiating"
+              ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200"
+              : followUp?.status === "qualified"
+              ? "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200"
+              : followUp?.status === "proposal-sent"
+              ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200"
+              : followUp?.status === "on-hold"
+              ? "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200"
+              : followUp?.status === "contacted"
               ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-              : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200"
+              : "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-200"
           }`}
         >
           {followUp?.status}
@@ -182,18 +192,23 @@ function UpcommingFollowups({ followUp, onSuccess }) {
           <FaCalendar className="mr-1" />
           Reschedule
         </button>
-        {!(followUp?.status === "won" || followUp?.status === "lost") && (
+        {!(followUp?.status === "completed" || followUp?.status === "missed") && (
           <>
             <button
               onClick={async () => {
                 setIsFormSubmitting(true);
                 try {
-                  const response = await followUpService.updateFollowUp(followUp._id, { status: "won" });
-                  if (response.statusCode !== 200) throw new Error("Failed to update follow-up");
+                  const response = await followUpService.updateFollowUp(
+                    followUp._id,
+                    { status: "completed" }
+                  );
+                  if (response.statusCode !== 200 && response.statusCode !== 201) {
+                    throw new Error(response.message || "Failed to update follow-up");
+                  }
                   toast.success("Follow-up marked as Won!");
-                  onSuccess();
+                  if (typeof onSuccess === "function") onSuccess();
                 } catch (error) {
-                  toast.error(error.message || "Failed to mark as won");
+                  toast.error(error.message || "Failed to mark as completed");
                 } finally {
                   setIsFormSubmitting(false);
                 }
@@ -203,16 +218,21 @@ function UpcommingFollowups({ followUp, onSuccess }) {
               aria-label="Mark follow-up as won"
             >
               <FaCheck className="mr-1" />
-              Mark as Won
+              {isFormSubmitting ? "Marking..." : "Complete"}
             </button>
             <button
               onClick={async () => {
                 setIsFormSubmitting(true);
                 try {
-                  const response = await followUpService.updateFollowUp(followUp._id, { status: "lost" });
-                  if (response.statusCode !== 200) throw new Error("Failed to update follow-up");
-                  toast.success("Follow-up marked as Lost!");
-                  onSuccess();
+                  const response = await followUpService.updateFollowUp(
+                    followUp._id,
+                    { status: "missed" }
+                  );
+                  if (response.statusCode !== 200 && response.statusCode !== 201) {
+                    throw new Error(response.message || "Failed to update follow-up");
+                  }
+                  toast.success("Follow-up marked as missed!");
+                  if (typeof onSuccess === "function") onSuccess();
                 } catch (error) {
                   toast.error(error.message || "Failed to mark as lost");
                 } finally {
@@ -224,7 +244,7 @@ function UpcommingFollowups({ followUp, onSuccess }) {
               aria-label="Mark follow-up as lost"
             >
               <FaCheck className="mr-1" />
-              Mark as Lost
+              {isFormSubmitting ? "Marking..." : "Missed"}
             </button>
           </>
         )}
@@ -269,30 +289,29 @@ function UpcommingFollowups({ followUp, onSuccess }) {
               className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="Follow-up time"
             />
-          </div>
+          </div>{" "}
           <div>
             <label
-              htmlFor="followUpType"
+              htmlFor="status"
               className="block text-xs font-medium text-gray-700 dark:text-gray-300"
             >
-              Type
+              Status
             </label>
             <select
-              id="followUpType"
-              {...register("followUpType", { required: "Type is required" })}
+              id="status"
+              defaultValue={followUp.status}
+              {...register("status")}
               className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              aria-label="Follow-up type"
+              aria-label="Follow-up status"
             >
-              <option value="call">Call</option>
-              <option value="email">Email</option>
-              <option value="meeting">Meeting</option>
-              <option value="whatsapp">WhatsApp</option>
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="on-hold">On Hold</option>
+              <option value="completed">Completed</option>
+              <option value="rescheduled">Rescheduled</option>
+              <option value="missed">Missed</option>
+              <option value="cancelled">Cancelled</option>
             </select>
-            {errors.followUpType && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                {errors.followUpType.message}
-              </p>
-            )}
           </div>
           <div>
             <label
@@ -334,16 +353,31 @@ function UpcommingFollowups({ followUp, onSuccess }) {
       {isWhatsAppModalOpen && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl max-h-[80vh] overflow-y-auto transform scale-95 animate-in">
+            <button
+              onClick={() => setIsWhatsAppModalOpen(false)}
+              className="flex items-center gap-2 text-orange-400 cursor-pointer px-4 py-2 rounded-xl shadow-lg transition-all"
+            >
+             <FaArrowLeft/> Go Back
+            </button>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Select a Template to Send to {followUp?.lead?.name}
+              Select a Template to Send to {followUp?.lead?.name || "Lead"}
             </h3>
             <div>
-              {loading ? (
+              {!followUp?.lead && !followUp.lead ? (
+                <div className="p-8 text-center text-red-500 dark:text-red-400 text-xl font-light">
+                  Unable to send WhatsApp message: Lead information is missing.
+                </div>
+              ) : loading ? (
                 <Loading h={4} w={4} />
               ) : whatsappTemplates.length ? (
                 whatsappTemplates.map((template) => (
                   <WhatsappTemplate
-                    leadId={followUp.lead._id}
+                    leadId={
+                      typeof followUp.lead === "object"
+                        ? followUp.lead._id
+                        : followUp.lead
+                    }
+                    templateId={template._id}
                     key={template._id}
                     template={template}
                     setIsWhatsAppModalOpen={setIsWhatsAppModalOpen}

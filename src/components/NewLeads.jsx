@@ -40,16 +40,25 @@ function NewLeads({lead}) {
           <div
             className="bg-orange-500 h-1.5 rounded-full"
             style={{
-              width: `${
-                lead.status === 'new'
+              width: `${                lead.status === 'new'
+                  ? 10
+                  : lead.status === 'contacted'
                   ? 25
+                  : lead.status === 'qualified'
+                  ? 40
+                  : lead.status === 'negotiating'
+                  ? 55
                   : lead.status === 'in-progress'
-                  ? 50
-                  : lead.status === 'closed-won'
+                  ? 70
+                  : lead.status === 'proposal-sent'
+                  ? 85
+                  : lead.status === 'won'
                   ? 100
-                  : lead.status === 'closed-lost'
+                  : lead.status === 'lost'
                   ? 0
-                  : 25
+                  : lead.status === 'on-hold'
+                  ? 50
+                  : 10
               }%`,
             }}
           ></div>

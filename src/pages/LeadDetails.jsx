@@ -16,7 +16,8 @@ import {
   FaClipboardList,
   FaCheckCircle,
   FaTimesCircle,
-  FaExclamationCircle
+  FaExclamationCircle,
+  FaTrophy
 } from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
 import leadService from "../services/leadService";
@@ -139,29 +140,30 @@ function LeadDetails() {
           hour: "2-digit",
           minute: "2-digit",
         });
-  };
-  const getStatusColor = (status) => {
+  };  const getStatusColor = (status) => {
     switch (status) {
       case "new":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
       case "contacted":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "qualified":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "proposal":
+        return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200";
+      case "negotiating":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200";
+      case "in-progress":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "proposal-sent":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "negotiation":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      case "closed-won":
+      case "won":
         return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
-      case "closed-lost":
+      case "lost":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "on-hold":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
     }
-  };
-
-  const getStatusIcon = (status) => {
+  };  const getStatusIcon = (status) => {
     switch (status) {
       case "new":
         return <FaInfoCircle className="mr-1" />;
@@ -169,14 +171,18 @@ function LeadDetails() {
         return <FaPhone className="mr-1" />;
       case "qualified":
         return <FaCheckCircle className="mr-1" />;
-      case "proposal":
+      case "negotiating":
+        return <FaHandshake className="mr-1" />;
+      case "in-progress":
         return <FaEdit className="mr-1" />;
-      case "negotiation":
-        return <FaUser className="mr-1" />;
-      case "closed-won":
-        return <FaCheckCircle className="mr-1" />;
-      case "closed-lost":
+      case "proposal-sent":
+        return <FaFileAlt className="mr-1" />;
+      case "won":
+        return <FaTrophy className="mr-1" />;
+      case "lost":
         return <FaTimesCircle className="mr-1" />;
+      case "on-hold":
+        return <FaPause className="mr-1" />;
       default:
         return null;
     }
@@ -303,15 +309,15 @@ function LeadDetails() {
                       </label>
                       <select
                         {...register("status", { required: "Status is required" })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="new">New</option>
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"                      >                        <option value="new">New</option>
                         <option value="contacted">Contacted</option>
                         <option value="qualified">Qualified</option>
-                        <option value="proposal">Proposal</option>
-                        <option value="negotiation">Negotiation</option>
-                        <option value="closed-won">Closed-Won</option>
-                        <option value="closed-lost">Closed-Lost</option>
+                        <option value="negotiating">Negotiating</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="proposal-sent">Proposal Sent</option>
+                        <option value="won">Won</option>
+                        <option value="lost">Lost</option>
+                        <option value="on-hold">On Hold</option>
                       </select>
                     </div>
                     <div>
