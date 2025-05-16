@@ -143,11 +143,9 @@ export class WhatsappService {
       );
       throw error.response?.data || "Failed to delete phone number.";
     }
-  }
-
-  async getWhatsappStats() {
+  }  async getWhatsappStats(days) {
     try {
-      const response = await api.get("/watsapp/stats");
+      const response = await api.get(`/watsapp/stats${days ? `?days=${days}` : ''}`);
       return response.data;
     } catch (error) {
       console.error(

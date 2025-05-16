@@ -21,7 +21,8 @@ import {
   FaEnvelope,
   FaChartLine,
   FaRegBell,
-  FaHistory
+  FaHistory,
+  FaWhatsapp
 } from 'react-icons/fa';
 import { FiUsers, FiSettings, FiLogOut, FiTrendingUp, FiBarChart2, FiPieChart } from 'react-icons/fi';
 import { getDashboardStats, getUserPerformance, getCompanyHealth } from '../services/dashboardService';
@@ -33,6 +34,7 @@ import toast from 'react-hot-toast';
 import RecentActivity from '../components/RecentActivity';
 import leadService from '../services/leadService';
 import FollowupActivity from '../components/FollowupActivity';
+import WhatsappAdminPanel from '../components/WhatsappAdminPanel';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -249,6 +251,7 @@ const AdminDashboard = () => {
               { name: "Leads", icon: <FaUsers />, id: "leads" },
               { name: "Performance", icon: <FiTrendingUp />, id: "performance" },
               { name: "Company Health", icon: <FiBarChart2 />, id: "company-health" },
+              { name: "WhatsApp Analytics", icon: <FaWhatsapp />, id: "whatsapp-analytics" },
               { name: "Settings", icon: <FiSettings />, id: "settings" }
             ].map((item) => (
               <li 
@@ -874,6 +877,17 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <Settings />
+            </div>
+          )}
+          {activeTab === 'whatsapp-analytics' && (
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">WhatsApp Analytics & Management</h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  View and manage WhatsApp message stats, templates, and sender numbers.
+                </p>
+              </div>
+              <WhatsappAdminPanel />
             </div>
           )}
           

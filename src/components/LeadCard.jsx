@@ -6,6 +6,9 @@ import {
   FaTag,
   FaClock,
   FaEnvelope,
+  FaBuilding,
+  FaInfoCircle,
+  FaUserTie,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import whatsappService from "../services/whatsappService";
@@ -14,8 +17,9 @@ import WhatsappTemplate from "./WhatsappTemplate";
 import Loading from "./Loading";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { LEAD_STATUSES } from '../utils/constants';
 
-function LeadCard({ lead, onClick }) {
+function LeadCard({ lead, onClick, isAdmin }) {
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -75,7 +79,6 @@ function LeadCard({ lead, onClick }) {
         .finally(() => setLoading(false));
     }
   }, [isWhatsAppModalOpen]);
-
   // Handle scheduling a follow-up
   const handleScheduleCall = async (data) => {
     setIsSubmitting(true);
@@ -85,9 +88,13 @@ function LeadCard({ lead, onClick }) {
       const scheduledDate = new Date(
         `${data.date}T${timeValue}:00`
       ).toISOString();
+      
+      // Set the follow-up type based on lead source - use 'whatsapp' for WhatsApp leads
+      const followUpType = lead.source === 'whatsapp' ? 'whatsapp' : (data.followUpType || 'call');
+      
       // Create follow-up data with correct status field
       const followUpData = {
-        followUpType: "call", // Default to call type
+        followUpType: followUpType,
         scheduled: scheduledDate,
         notes: data.notes || "",
         status: data.status, // Using status from the form
@@ -180,32 +187,74 @@ function LeadCard({ lead, onClick }) {
             </button>
           </Link>
         </div>
-      </div>
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+      </div>      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
         <div className="flex items-center">
           <FaPhone className="mr-2 text-gray-500 dark:text-gray-400" />
-          <span className="text-gray-700 dark:text-gray-300">
+          <a href={`tel:${lead?.phone}`} className="text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
             {lead?.phone || "No Phone"}
-          </span>
+          </a>
         </div>
-        <div className="flex items-center">
-          <FaEnvelope className="mr-2 text-gray-500 dark:text-gray-400" />
-          <span className="text-gray-700 dark:text-gray-300">
-            {lead?.email || "No Email"}
-          </span>
-        </div>
+        
+        {lead?.source === 'whatsapp' ? (
+          <div className="flex items-center">
+            <FaWhatsapp className="mr-2 text-green-500 dark:text-green-400" />
+            <span className="text-gray-700 dark:text-gray-300">
+              WhatsApp Lead
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center">
+            <FaEnvelope className="mr-2 text-gray-500 dark:text-gray-400" />
+            <span className="text-gray-700 dark:text-gray-300">
+              {lead?.email || "No Email"}
+            </span>
+          </div>
+        )}
+        
         <div className="flex items-center">
           <FaClock className="mr-2 text-gray-500 dark:text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">
             Last Contact: {formatDate(lead?.lastContacted)}
           </span>
         </div>
+        
         <div className="flex items-center">
           <FaTag className="mr-2 text-gray-500 dark:text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">
             Source: {lead?.source || "Unknown"}
           </span>
         </div>
+
+        {/* Display assigned employee for admin users */}
+        {isAdmin && lead?.assignedTo && (
+          <div className="flex items-center col-span-2">
+            <FaUserTie className="mr-2 text-gray-500 dark:text-gray-400" />
+            <span className="text-gray-700 dark:text-gray-300">
+              Assigned to: {lead.assignedTo.name}
+            </span>
+          </div>
+        )}
+      </div>
+      
+      {/* Additional information section */}
+      <div className="mt-2 text-sm">
+        {lead?.company && (
+          <div className="flex items-center mt-1">
+            <FaBuilding className="mr-2 text-gray-500 dark:text-gray-400" size={12} />
+            <span className="text-gray-700 dark:text-gray-300">
+              {lead.company}
+            </span>
+          </div>
+        )}
+        
+        {lead?.interestedIn && (
+          <div className="flex items-center mt-1">
+            <FaInfoCircle className="mr-2 text-gray-500 dark:text-gray-400" size={12} />
+            <span className="text-gray-700 dark:text-gray-300">
+              Interested in: {lead.interestedIn}
+            </span>
+          </div>
+        )}
       </div>
       {lead?.followUps?.length > 0 && (
         <div className="mt-2 flex items-center text-sm">
@@ -215,39 +264,65 @@ function LeadCard({ lead, onClick }) {
             follow-ups
           </span>
         </div>
-      )}
-      <div className="mt-3 flex flex-wrap space-x-2">
-        {lead?.phone && (
-          <a
-            href={`tel:${lead.phone}`}
-            className="flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-md transform hover:scale-105 transition-transform duration-200"
-            aria-label={`Call ${lead.name}`}
-          >
-            <FaPhone className="mr-1" />
-            Call
-          </a>
-        )}
-        {lead?.phone && (
+      )}      {/* Action buttons - Only show for non-admin users */}
+      {!isAdmin && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {lead?.phone && (
+            <>
+              {/* Prioritize WhatsApp button for WhatsApp leads */}
+              {lead.source === 'whatsapp' ? (
+                <>
+                  <button
+                    onClick={() => setIsWhatsAppModalOpen(true)}
+                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+                    aria-label={`Message ${lead.name} on WhatsApp`}
+                  >
+                    <FaWhatsapp className="mr-1" />
+                    WhatsApp
+                  </button>
+                  <a
+                    href={`tel:${lead.phone}`}
+                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+                    aria-label={`Call ${lead.name}`}
+                  >
+                    <FaPhone className="mr-1" />
+                    Call
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a
+                    href={`tel:${lead.phone}`}
+                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+                    aria-label={`Call ${lead.name}`}
+                  >
+                    <FaPhone className="mr-1" />
+                    Call
+                  </a>
+                  <button
+                    onClick={() => setIsWhatsAppModalOpen(true)}
+                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+                    aria-label={`Message ${lead.name} on WhatsApp`}
+                  >
+                    <FaWhatsapp className="mr-1" />
+                    WhatsApp
+                  </button>
+                </>
+              )}
+            </>
+          )}
           <button
-            onClick={() => setIsWhatsAppModalOpen(true)}
-            className="flex items-center px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 rounded-md transform hover:scale-105 transition-transform duration-200"
-            aria-label={`Message ${lead.name} on WhatsApp`}
+            onClick={() => setIsScheduleModalOpen(true)}
+            className="flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200"
+            aria-label={`${
+              lead.status === "new" ? "Schedule" : "Reschedule"
+            } follow-up for ${lead.name}`}
           >
-            <FaWhatsapp className="mr-1" />
-            WhatsApp
+            <FaCalendar className="mr-1" />
+            {lead.status === "new" ? "Schedule" : "Reschedule"}
           </button>
-        )}
-        <button
-          onClick={() => setIsScheduleModalOpen(true)}
-          className="flex items-center px-3 py-1 text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 rounded-md transform hover:scale-105 transition-transform duration-200"
-          aria-label={`${
-            lead.status === "new" ? "Schedule" : "Reschedule"
-          } follow-up for ${lead.name}`}
-        >
-          <FaCalendar className="mr-1" />
-          {lead.status === "new" ? "Schedule" : "Reschedule"}
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* WhatsApp Modal */}
       {isWhatsAppModalOpen && (
@@ -334,8 +409,7 @@ function LeadCard({ lead, onClick }) {
                   className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   aria-label="Follow-up time"
                 />{" "}
-              </div>{" "}
-              <div>
+              </div>{" "}              <div>
                 <label
                   htmlFor="status"
                   className="block text-xs font-medium text-gray-700 dark:text-gray-300"
@@ -349,19 +423,37 @@ function LeadCard({ lead, onClick }) {
                   aria-label="Follow-up status"
                   defaultValue="pending"
                 >
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                  <option value="rescheduled">Rescheduled</option>
-                  <option value="missed">Missed</option>
-                  <option value="cancelled">Cancelled</option>
+                  {LEAD_STATUSES.map(status => (
+                    <option key={status} value={status}>{status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+                  ))}
                 </select>
                 {errors.status && (
                   <p className="text-xs text-red-600 dark:text-red-400">
                     {errors.status.message}
                   </p>
                 )}
+              </div>
+              
+              <div>
+                <label
+                  htmlFor="followUpType"
+                  className="block text-xs font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Follow-up Type
+                </label>
+                <select
+                  id="followUpType"
+                  {...register("followUpType")}
+                  className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  aria-label="Follow-up type"
+                  defaultValue={lead.source === 'whatsapp' ? 'whatsapp' : 'call'}
+                >
+                  <option value="call">Call</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="email">Email</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
               <div>
                 <label

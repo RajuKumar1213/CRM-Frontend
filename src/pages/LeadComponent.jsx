@@ -14,26 +14,26 @@ import UpcommingFollowups from "../components/UpcommingFollowups";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { LeadSkeleton } from "../components";
+import { LEAD_STATUSES } from '../utils/constants';
+import { useSelector } from 'react-redux';
 
 const LeadComponent = () => {
-  const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState([]);
-  const [todayFollowups, setTodayFollowups] = useState({
-    count: 0,
-    followUps: [],
-  });
-  const [dueFollowups, setDueFollowups] = useState({ count: 0, followUps: [] });
-  const [upcomingFollowups, setUpcomingFollowups] = useState({
-    count: 0,
-    data: [],
-  });
-  const [activeTab, setActiveTab] = useState("today-followups");  const [searchTerm, setSearchTerm] = useState("");
-  const [activeSearchQuery, setActiveSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All Statuses");
-  const [sourceFilter, setSourceFilter] = useState("All Sources");
-  const [priorityFilter, setPriorityFilter] = useState("All Priorities");
-  const [showAddLead, setShowAddLead] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
   const [triggerFetch, setTriggerFetch] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('All Statuses');
+  const [sourceFilter, setSourceFilter] = useState('All Sources');
+  const [priorityFilter, setPriorityFilter] = useState('All Priorities');
+  const [dueFollowups, setDueFollowups] = useState({ count: 0, followUps: [] });
+  const [todayFollowups, setTodayFollowups] = useState({ count: 0, followUps: [] });
+  const [upcomingFollowups, setUpcomingFollowups] = useState({ count: 0, data: [] });
+  const { userData } = useSelector((state) => state.auth);
+  const isAdmin = userData?.role === 'admin';
+  const [showAddLead, setShowAddLead] = useState(false);
 
   const {
     register,
@@ -42,23 +42,56 @@ const LeadComponent = () => {
     reset,
   } = useForm();  // Function to fetch leads with current filters
   const fetchLeads = useCallback(async () => {
+    setLoading(true);
     try {
-      const params = {
-        search: activeSearchQuery,
-        status: statusFilter,
-        source: sourceFilter,
-        priority: priorityFilter
-      };
+      let response;
       
-      const leadResponse = await leadService.getUserLeads(params);
-      if (leadResponse.statusCode === 200) {
-        setLeads(leadResponse.data);
+      // Use getLeads for admin and getUserLeads for employees
+      if (isAdmin) {
+        response = await leadService.getLeads({
+          search: activeSearchQuery,
+          status: statusFilter,
+          source: sourceFilter,
+          priority: priorityFilter
+        });
+      } else {
+        response = await leadService.getUserLeads({
+          search: activeSearchQuery,
+          status: statusFilter,
+          source: sourceFilter,
+          priority: priorityFilter
+        });
       }
-    } catch (error) {
-      console.error("Error fetching leads:", error);
-      toast.error("Failed to load leads");
+
+      console.log('Fetch leads response:', response);
+      
+      if (response.data) {
+        console.log('Setting leads:', response.data);
+        setLeads(response.data);
+      } else {
+        console.log('No leads data in response, setting empty array');
+        setLeads([]); // Set empty array if no leads exist
+      }
+      
+      console.log('Active tab:', activeTab);
+
+      // Set followups data
+      if (response?.data?.followUps) {
+        const { overdue, today, upcoming } = response.data.followUps;
+        setDueFollowups(overdue || { count: 0, followUps: [] });
+        setTodayFollowups(today || { count: 0, followUps: [] });
+        setUpcomingFollowups(upcoming || { count: 0, data: [] });
+      }
+      
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch leads');
+      toast.error(err.message || 'Failed to fetch leads');
+    } finally {
+      setLoading(false);
+      setTriggerFetch(false);
     }
-  }, [activeSearchQuery, statusFilter, sourceFilter, priorityFilter]);
+  }, [isAdmin, activeSearchQuery, statusFilter, sourceFilter, priorityFilter]);
     // Fetch all data on mount or when filters change
   useEffect(() => {
     const fetchData = async () => {
@@ -100,6 +133,7 @@ const LeadComponent = () => {
       fetchLeads();
     }
   }, [activeSearchQuery, fetchLeads]);
+
   const handleChildSuccess = () => {
     setTriggerFetch(true);
   };
@@ -126,32 +160,35 @@ const LeadComponent = () => {
   };
 
   // Since filtering is now done on the server side, we don't need client-side filtering
-  // Just determine which leads to show based on active tab
+  // Just determine which leads to show based on active tab  // Debug leads data
+  console.log('Current leads array:', leads);
+  console.log('Active tab:', activeTab);
+  
   const displayedLeads = activeTab === "new" 
-    ? leads.filter(lead => lead.status === "new")
+    ? leads.filter(lead => {
+        console.log('Filtering lead:', lead);
+        return lead.status === "new";
+      })
     : leads;
+  
+  // Debug filtered leads
+  console.log('Displayed leads:', displayedLeads);
 
   if (loading) return <LeadSkeleton />;
+
+  if (error) {
+    console.error('Error state:', error);
+    return (
+      <div className="p-8 text-center text-red-500 dark:text-red-400">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-16 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {/* Header */}
-      <header className="py-4 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm">
-        <h1 className="text-md md:text-2xl font-bold flex items-center">
-          <FaUser className="mr-2 text-orange-500 dark:text-orange-400" />
-          Lead Management
-        </h1>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setShowAddLead(true)}
-            className="flex items-center px-2 md:px-4 py-1 md:py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white transform hover:scale-105 transition-transform duration-200"
-            aria-label="Add new lead"
-          >
-            <FaPlus className="mr-2" />
-            Add Lead
-          </button>
-        </div>
-      </header>
+     
 
       <div className="flex flex-col md:flex-row">
         {/* Sidebar */}
@@ -262,16 +299,11 @@ const LeadComponent = () => {
                 setStatusFilter(e.target.value);
                 setTriggerFetch(true);
               }}
-            >              <option>All Statuses</option>
-              <option>new</option>
-              <option>contacted</option>
-              <option>qualified</option>
-              <option>negotiating</option>
-              <option>in-progress</option>
-              <option>proposal-sent</option>
-              <option>won</option>
-              <option>lost</option>
-              <option>on-hold</option>
+            >
+              <option>All Statuses</option>
+              {LEAD_STATUSES.map(status => (
+                <option key={status} value={status}>{status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+              ))}
             </select>            <select
               className="w-full p-2 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 mt-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
               aria-label="Filter by source"
@@ -340,11 +372,9 @@ const LeadComponent = () => {
                     <FaChartBar />
                   </button>{" "}
                 </div>
-              </div>
-
-              <div
+              </div>              <div
                 className="overflow-y-auto"
-                style={{ maxHeight: "calc(100vh - 200px)" }}
+                style={{ maxHeight: "calc(100vh - 100px)" }}
               >
                 {activeTab === "today-followups" ? (
                   todayFollowups.count !== 0 ? (
@@ -393,7 +423,11 @@ const LeadComponent = () => {
                   </div>
                 ) : (
                   displayedLeads.map((lead) => (
-                    <LeadCard key={lead._id} lead={lead} />
+                    <LeadCard 
+                      key={lead._id}
+                      lead={lead} 
+                      isAdmin={isAdmin}
+                    />
                   ))
                 )}
               </div>

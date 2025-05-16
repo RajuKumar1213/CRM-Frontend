@@ -2,15 +2,24 @@ import React, { useEffect, useState } from "react";
 import whatsappService from "../services/whatsappService";
 import toast from "react-hot-toast";
 import Loading from "./Loading";
+import { FaWhatsapp } from "react-icons/fa";
 
 function WhatsappTemplate({
   template,
   leadId,
   setIsWhatsAppModalOpen,
 }) {
-
-  console.log("WhatsappTemplate", template, leadId);
   const [loading, setLoading] = useState(false);
+  const [leadData, setLeadData] = useState(null);
+
+  // Get lead data for better placeholder replacement
+  useEffect(() => {
+    if (leadId) {
+      // This is a limited implementation - in a real scenario, you'd fetch the lead data
+      // For now, we'll just log the leadId
+      console.log("WhatsappTemplate for lead:", leadId);
+    }
+  }, [leadId]);
 
   const handleSendWhatsApp = () => {
     setLoading(true);
@@ -24,7 +33,7 @@ function WhatsappTemplate({
         }
       })
       .catch((error) => {
-        toast.error(error.message);
+        toast.error(error.message || "Failed to send WhatsApp message");
         setLoading(false);
       })
       .finally(() => {
@@ -55,13 +64,16 @@ function WhatsappTemplate({
             <span key={tag} className="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200 font-medium">#{tag}</span>
           ))}
         </div>
-      )}
-      <div className="flex justify-end space-x-3 mt-2">
+      )}      <div className="flex justify-end space-x-3 mt-2">
         <button
           onClick={handleSendWhatsApp}
           className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 flex justify-center items-center cursor-pointer"
         >
-          {loading && <Loading h={4} w={4} />} {loading ? "Sending..." : "Send WhatsApp"}
+          {loading ? (
+            <><Loading h={4} w={4} /> <span className="ml-2">Sending...</span></>
+          ) : (
+            <><FaWhatsapp className="mr-2" /> Send WhatsApp</>
+          )}
         </button>
       </div>
     </div>

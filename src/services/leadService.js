@@ -1,9 +1,18 @@
 import api from "../utils/api.js";
 
-export class LeadService {
-  async getLeads() {
+export class LeadService {  async getLeads(params = {}) {
     try {
-      const response = await api.get("/lead/get-leads");
+      const queryParams = new URLSearchParams();
+      
+      if (params.search) queryParams.append('search', params.search);
+      if (params.status && params.status !== 'All Statuses') queryParams.append('status', params.status);
+      if (params.source && params.source !== 'All Sources') queryParams.append('source', params.source);
+      if (params.priority && params.priority !== 'All Priorities') queryParams.append('priority', params.priority);
+      
+      const queryString = queryParams.toString();
+      const url = `/lead/get-leads${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error(

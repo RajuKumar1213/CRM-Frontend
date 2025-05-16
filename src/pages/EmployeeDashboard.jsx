@@ -34,6 +34,7 @@ const EmployeeDashboard = () => {
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [activitiesPage, setActivitiesPage] = useState(1);
   const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
+  const [triggerFetch, setTriggerFetch] = useState(false);
 
   const fetchActivities = async (page = 1, replace = true) => {
     try {
@@ -54,53 +55,52 @@ const EmployeeDashboard = () => {
   };
 
   useEffect(() => {
-    fetchActivities(1);
-  }, []);
+    const fetchAllData = async () => {
+      try {
+        setLoading(true);
+        const [leadsResponse, todayResponse, overdueResponse, upcomingResponse] = await Promise.all([
+          leadService.getUserLeads(),
+          followUpService.getTodayFollowUps(),
+          followUpService.getOverdueFollowUps(),
+          followUpService.getUpcomingFollowUps()
+        ]);
 
+        // Set leads data
+        if (leadsResponse.statusCode === 200) {
+          setLeads(leadsResponse.data);
+        }
+
+        // Set today's followups
+        if (todayResponse.statusCode === 200) {
+          setTodayfollowups(todayResponse.data);
+        }
+
+        // Set overdue followups
+        if (overdueResponse.statusCode === 200) {
+          setDueFolloups(overdueResponse.data);
+        }
+
+        // Set upcoming followups
+        if (upcomingResponse.statusCode === 200) {
+          setFollowups(upcomingResponse.data);
+        }
+
+        await fetchActivities(1);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, [triggerFetch]);
+
+  // Keep the scroll to top effect
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  useEffect(() => {
-    leadService.getUserLeads().then((response) => {
-      if (response.statusCode === 200) {
-        setLeads(response.data);
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    followUpService.getUpcomingFollowUps().then((response) => {
-      if (response.statusCode === 200) {
-        setFollowups(response.data);
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    followUpService.getTodayFollowUps().then((response) => {
-      if (response.statusCode === 200) {
-        setTodayfollowups(response.data);
-        setLoading(false);
-      }
-    }).catch((error)=> {
-      console.log(error)
-    })
-  }, []);
-
-  useEffect(() => {
-    followUpService.getOverdueFollowUps().then((response) => {
-      if (response.statusCode === 200) {
-        setDueFolloups(response.data);
-        setLoading(false);
-      }
-    }).catch((error)=> {
-      console.log(error)
-    })
-  }, []);
-
 
   // Sample data
   const stats = {
@@ -110,9 +110,11 @@ const EmployeeDashboard = () => {
     upcommingFollowups : followups?.count
   };
 
+  const handleChildSuccess = () => {
+    setTriggerFetch(true);
+  };
+
   
-
-
   if(loading) return <DashboardSkeleton/>
 
   return (
@@ -314,7 +316,7 @@ const EmployeeDashboard = () => {
               <Loading />
             ) : todayfollowups?.count !==0 ? (
               todayfollowups?.followUps?.map((followup) => (
-                <UpcommingFollowups key={followup._id} followUp={followup} />
+                <UpcommingFollowups key={followup._id} followUp={followup} onSuccess={handleChildSuccess} />
               ))
             ) : (
               <h1 className="text-center pt-10 text-xl font-thin" >No followups Available.</h1>
@@ -338,7 +340,7 @@ const EmployeeDashboard = () => {
               <Loading />
             ) : followups ? (
               followups?.data?.slice(0, 3)?.map((followup) => (
-                <UpcommingFollowups key={followup._id} followUp={followup} />
+                <UpcommingFollowups key={followup._id} followUp={followup} onSuccess={handleChildSuccess} />
               ))  
             ) : (
               <h1>No followups Available.</h1>
